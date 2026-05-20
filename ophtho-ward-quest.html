@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<title>Ophtho Ward Quest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a12;--bg2:#11111e;--bg3:#181828;--card:#1a1a2e;
+  --border:rgba(140,120,255,0.13);--border2:rgba(140,120,255,0.25);
+  --purple:#8b7cff;--purple2:#6a5acd;--purple-dim:rgba(139,124,255,0.12);
+  --teal:#4ecdc4;
+  --text:#f0eeff;--text2:#c8c0ff;--text3:#9b94cc;
+  --green:#6ee7b7;--green-dim:rgba(110,231,183,0.12);
+  --gold:#f5c842;--gold-dim:rgba(245,200,66,0.13);
+  --red:#ff7070;--red-dim:rgba(255,112,112,0.1);
+  --radius:14px;--radius-sm:9px;
+}
+html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh;}
+body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:600px;height:400px;background:radial-gradient(ellipse,rgba(107,90,205,0.18) 0%,transparent 70%);pointer-events:none;z-index:0;}
+.app{max-width:440px;margin:0 auto;padding:0 16px 100px;position:relative;z-index:1;}
+.topbar{padding:36px 0 0;display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;}
+.app-eyebrow{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--purple);margin-bottom:4px;}
+.app-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--text);line-height:1.1;}
+.app-date{font-size:12px;color:var(--text3);margin-top:4px;}
+.eye-icon{width:44px;height:44px;background:var(--purple-dim);border:0.5px solid var(--border2);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;}
+
+/* XP card */
+.xp-card{background:var(--card);border:0.5px solid var(--border2);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
+.xp-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.level-ring{width:44px;height:44px;border-radius:50%;border:2px solid var(--purple);display:flex;align-items:center;justify-content:center;background:var(--purple-dim);flex-shrink:0;}
+.level-ring span{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--purple);}
+.xp-level-badge{display:flex;align-items:center;gap:10px;}
+.level-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text);}
+.level-sub{font-size:11px;color:var(--text3);margin-top:2px;}
+.xp-right{text-align:right;}
+.xp-num{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--gold);}
+.xp-label{font-size:10px;color:var(--text3);letter-spacing:.05em;}
+.xp-bar-wrap{height:6px;background:var(--bg2);border-radius:99px;margin-bottom:6px;overflow:hidden;}
+.xp-bar-fill{height:100%;background:linear-gradient(90deg,var(--purple2),var(--gold));border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1);}
+.xp-bar-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text3);}
+
+/* Summary */
+.summary{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;}
+.stat{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 10px;text-align:center;}
+.stat-num{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--text);}
+.stat-num.accent{color:var(--purple);}
+.stat-num.gold{color:var(--gold);}
+.stat-label{font-size:10px;color:var(--text3);margin-top:3px;}
+
+/* Tabs */
+.tabs{display:flex;gap:6px;margin-bottom:16px;}
+.tab{flex:1;padding:9px 4px;border-radius:var(--radius-sm);border:0.5px solid rgba(255,255,255,0.15);background:transparent;color:rgba(255,255,255,0.55);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:5px;}
+.tab.active{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.35);color:#ffffff;font-weight:600;}
+.tab:hover:not(.active){background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.8);}
+
+/* Patient blocks */
+.pt-block{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;}
+.pt-block-header{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;transition:background .15s;}
+.pt-block-header:hover{background:rgba(255,255,255,.02);}
+.pt-header-left{display:flex;align-items:center;gap:10px;}
+.pt-num{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--text3);min-width:18px;}
+.pt-avatar{width:32px;height:32px;border-radius:9px;background:var(--purple-dim);border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--purple);flex-shrink:0;}
+.pt-name{font-size:14px;font-weight:500;color:var(--text);}
+.pt-sub{font-size:11px;color:var(--text3);margin-top:1px;}
+.pt-header-right{display:flex;align-items:center;gap:8px;}
+.badge{font-size:11px;font-weight:500;padding:3px 9px;border-radius:99px;}
+.badge-done{background:var(--green-dim);color:var(--green);}
+.badge-pending{background:var(--bg2);color:var(--text3);}
+.badge-prog{background:var(--purple-dim);color:var(--purple);}
+.chevron{font-size:16px;color:var(--text3);transition:transform .2s;line-height:1;}
+.chevron.open{transform:rotate(180deg);}
+.del-pt-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:3px 5px;border-radius:5px;transition:color .15s;}
+.del-pt-btn:hover{color:var(--red);background:var(--red-dim);}
+.pt-block-body{padding:0 16px 14px;border-top:0.5px solid var(--border);display:none;}
+.pt-block-body.open{display:block;}
+.pt-prog{height:2px;background:var(--bg2);border-radius:99px;margin:10px 0 12px;overflow:hidden;}
+.pt-prog-fill{height:100%;background:linear-gradient(90deg,var(--teal),#4ec9b0);transition:width .4s;}
+
+/* Tasks */
+.task-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:0.5px solid var(--border);}
+.task-item:first-of-type{border-top:none;}
+.check-btn{width:22px;height:22px;border-radius:7px;border:1.5px solid var(--border2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.check-btn.done{background:var(--purple);border-color:var(--purple);}
+.check-btn svg{width:12px;height:12px;stroke:white;stroke-width:2.5;fill:none;opacity:0;transition:opacity .15s;}
+.check-btn.done svg{opacity:1;}
+.task-text{flex:1;font-size:14px;color:var(--text);line-height:1.4;}
+.task-text.done{text-decoration:line-through;color:var(--text3);}
+.task-xp{font-size:10px;font-weight:700;color:var(--gold);background:var(--gold-dim);border-radius:99px;padding:2px 7px;white-space:nowrap;}
+.del-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:3px 5px;border-radius:5px;opacity:0;transition:opacity .15s,color .15s;line-height:1;}
+.task-item:hover .del-btn{opacity:1;}
+.del-btn:hover{color:var(--red);background:var(--red-dim);}
+
+/* Inputs */
+.add-row{display:flex;gap:8px;margin-top:10px;}
+.add-input{flex:1;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;outline:none;transition:border-color .15s;}
+.add-input::placeholder{color:var(--text3);}
+.add-input:focus{border-color:var(--purple);}
+.add-btn{background:var(--purple-dim);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--purple);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:9px 14px;cursor:pointer;white-space:nowrap;transition:all .15s;}
+.add-btn:hover{background:rgba(139,124,255,.22);}
+
+/* Admit tab */
+.admit-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
+.admit-section-label{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.admit-section-label span{width:4px;height:14px;background:var(--purple);border-radius:2px;display:inline-block;}
+.admit-name-row{display:flex;gap:8px;margin-bottom:16px;}
+.admit-big-btn{width:100%;background:linear-gradient(135deg,var(--purple2),var(--purple));border:none;border-radius:var(--radius-sm);color:white;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;padding:13px;cursor:pointer;transition:opacity .15s;letter-spacing:.04em;margin-top:4px;}
+.admit-big-btn:hover{opacity:.88;}
+.admit-big-btn:active{transform:scale(.98);}
+.default-task-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:0.5px solid var(--border);}
+.default-task-row:first-of-type{border-top:none;}
+.dtask-check{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--border2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.dtask-check.sel{background:var(--purple);border-color:var(--purple);}
+.dtask-check svg{width:11px;height:11px;stroke:white;stroke-width:2.5;fill:none;opacity:0;transition:opacity .15s;}
+.dtask-check.sel svg{opacity:1;}
+.dtask-label{flex:1;font-size:13px;color:var(--text);line-height:1.4;}
+
+/* XP Log */
+.log-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:16px;}
+.log-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text);letter-spacing:.04em;text-transform:uppercase;margin-bottom:14px;}
+.log-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:0.5px solid var(--border);}
+.log-row:first-of-type{border-top:none;}
+.log-reason{font-size:13px;color:var(--text2);flex:1;margin-right:10px;}
+.log-time{font-size:10px;color:var(--text3);}
+.log-xp{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--gold);margin-left:8px;}
+
+.empty{text-align:center;padding:2rem 0;color:var(--text3);font-size:13px;}
+.empty-icon{font-size:32px;margin-bottom:8px;}
+
+/* Toast */
+.xp-toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:#1a1535;border:0.5px solid var(--gold);border-radius:99px;padding:8px 18px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--gold);transition:transform .35s cubic-bezier(.4,0,.2,1);z-index:999;pointer-events:none;white-space:nowrap;}
+.xp-toast.show{transform:translateX(-50%) translateY(0);}
+
+/* Level up */
+.lvlup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:1000;}
+.lvlup-overlay.show{display:flex;}
+.lvlup-box{background:#1a1535;border:1px solid var(--gold);border-radius:18px;padding:28px 24px;text-align:center;width:280px;}
+.lvlup-emoji{font-size:48px;margin-bottom:12px;}
+.lvlup-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--gold);margin-bottom:4px;}
+.lvlup-sub{font-size:13px;color:var(--text2);margin-bottom:16px;}
+.lvlup-btn{background:var(--gold-dim);border:0.5px solid var(--gold);border-radius:var(--radius-sm);color:var(--gold);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;padding:10px 24px;cursor:pointer;}
+
+/* Bottom bar */
+.bottom-bar{position:fixed;bottom:0;left:0;right:0;height:34px;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:10;}
+.home-indicator{width:120px;height:4px;background:rgba(255,255,255,0.12);border-radius:99px;}
+
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.pt-block,.task-item{animation:fadeIn .2s ease;}
+
+@media(max-width:480px){
+  .app{max-width:100%;}
+  .topbar{padding-top:24px;}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <div class="topbar">
+    <div>
+      <div class="app-eyebrow">Ophthalmology</div>
+      <div class="app-title">Ward Quest</div>
+      <div class="app-date" id="date-label"></div>
+    </div>
+    <div class="eye-icon">👁️</div>
+  </div>
+
+  <div class="xp-card">
+    <div class="xp-top">
+      <div class="xp-level-badge">
+        <div class="level-ring"><span id="lvl-num">1</span></div>
+        <div>
+          <div class="level-title" id="lvl-title">Intern</div>
+          <div class="level-sub" id="lvl-sub">0 XP to next level</div>
+        </div>
+      </div>
+      <div class="xp-right">
+        <div class="xp-num" id="xp-total">0</div>
+        <div class="xp-label">TOTAL XP</div>
+      </div>
+    </div>
+    <div class="xp-bar-wrap"><div class="xp-bar-fill" id="xp-bar" style="width:0%"></div></div>
+    <div class="xp-bar-labels"><span id="xp-cur">0 XP</span><span id="xp-next"></span></div>
+  </div>
+
+  <div class="summary" id="summary"></div>
+
+  <div class="tabs">
+    <button class="tab active" id="tab-ward" onclick="switchTab('ward')">📋 Ward</button>
+    <button class="tab" id="tab-admit" onclick="switchTab('admit')">🏥 Admit</button>
+    <button class="tab" id="tab-log" onclick="switchTab('log')">📜 XP Log</button>
+  </div>
+
+  <!-- Ward tab -->
+  <div id="view-ward">
+    <div id="ward-list"></div>
+  </div>
+
+  <!-- Admit tab -->
+  <div id="view-admit" style="display:none">
+    <div class="admit-card">
+      <div class="admit-section-label"><span></span>Patient name</div>
+      <div class="admit-name-row">
+        <input class="add-input" id="admit-name" placeholder="e.g. Mr John, Bed 4..." style="margin:0;" />
+      </div>
+      <div class="admit-section-label"><span></span>Standard admission tasks</div>
+      <div id="default-tasks-list"></div>
+      <div style="margin-top:14px;">
+        <div class="admit-section-label"><span></span>Additional tasks</div>
+        <div id="custom-tasks-list"></div>
+        <div class="add-row" style="margin-top:6px;">
+          <input class="add-input" id="custom-task-input" placeholder="Add a custom task..." onkeydown="if(event.key==='Enter')addCustomAdmitTask()" />
+          <button class="add-btn" onclick="addCustomAdmitTask()">+ Add</button>
+        </div>
+      </div>
+      <button class="admit-big-btn" onclick="admitPatient()">🏥 Admit Patient → Ward</button>
+    </div>
+  </div>
+
+  <!-- XP Log tab -->
+  <div id="view-log" style="display:none">
+    <div class="log-card">
+      <div class="log-title">XP History</div>
+      <div id="log-list"></div>
+    </div>
+  </div>
+</div>
+
+<div class="bottom-bar"><div class="home-indicator"></div></div>
+
+<div class="xp-toast" id="xp-toast">+1 XP</div>
+<div class="lvlup-overlay" id="lvlup-overlay">
+  <div class="lvlup-box">
+    <div class="lvlup-emoji">🏆</div>
+    <div class="lvlup-title" id="lvlup-title">Level Up!</div>
+    <div class="lvlup-sub" id="lvlup-sub">You reached a new rank</div>
+    <button class="lvlup-btn" onclick="closeLvlUp()">Keep going →</button>
+  </div>
+</div>
+
+<script>
+const WARD_KEY='owq3_ward',XP_KEY='owq3_xp',LOG_KEY='owq3_log';
+let patients=[],xpData={total:0},xpLog=[];
+
+const DEFAULT_ADMIT_TASKS=[
+  'Take history',
+  'Visual acuity (VA)',
+  'Intraocular pressure (IOP)',
+  'Slit lamp examination',
+  'Fundus examination',
+  'Review medications',
+  'Consent form',
+  'Nursing handover',
+];
+
+let admitCustomTasks=[];
+let admitDefaultSel=new Set(DEFAULT_ADMIT_TASKS.map((_,i)=>i));
+
+const LEVELS=[
+  {min:0,title:'Intern'},{min:10,title:'Resident'},{min:25,title:'Senior Resident'},
+  {min:50,title:'Registrar'},{min:100,title:'Fellow'},{min:200,title:'Consultant'},
+  {min:400,title:'Senior Consultant'},{min:700,title:'Associate Professor'},
+  {min:1100,title:'Professor'},{min:1600,title:'Chief of Ophthalmology'},
+];
+
+function getLevel(xp){for(let i=LEVELS.length-1;i>=0;i--){if(xp>=LEVELS[i].min)return i;}return 0;}
+function uid(){return Math.random().toString(36).slice(2,9);}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function initials(n){return n.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?';}
+
+function save(){
+  localStorage.setItem(WARD_KEY,JSON.stringify(patients));
+  localStorage.setItem(XP_KEY,JSON.stringify(xpData));
+  localStorage.setItem(LOG_KEY,JSON.stringify(xpLog));
+}
+function load(){
+  try{patients=JSON.parse(localStorage.getItem(WARD_KEY))||[];}catch{patients=[];}
+  try{xpData=JSON.parse(localStorage.getItem(XP_KEY))||{total:0};}catch{xpData={total:0};}
+  try{xpLog=JSON.parse(localStorage.getItem(LOG_KEY))||[];}catch{xpLog=[];}
+}
+
+let toastTimer=null;
+function showToast(msg){
+  const t=document.getElementById('xp-toast');
+  t.textContent=msg;t.classList.add('show');
+  if(toastTimer)clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),1600);
+}
+
+function awardXP(amount,reason){
+  const oldLv=getLevel(xpData.total);
+  xpData.total+=amount;
+  const newLv=getLevel(xpData.total);
+  const now=new Date();
+  xpLog.unshift({xp:amount,reason,time:now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})});
+  if(xpLog.length>60)xpLog=xpLog.slice(0,60);
+  save();showToast('+'+amount+' XP');
+  if(newLv>oldLv){
+    setTimeout(()=>{
+      document.getElementById('lvlup-title').textContent='Level '+(newLv+1)+': '+LEVELS[newLv].title+'!';
+      document.getElementById('lvlup-sub').textContent='You are now a '+LEVELS[newLv].title;
+      document.getElementById('lvlup-overlay').classList.add('show');
+    },800);
+  }
+  renderXP();renderSummary();
+}
+function closeLvlUp(){document.getElementById('lvlup-overlay').classList.remove('show');}
+
+function renderXP(){
+  const xp=xpData.total,li=getLevel(xp),lv=LEVELS[li],lvN=LEVELS[li+1]||null;
+  document.getElementById('lvl-num').textContent=li+1;
+  document.getElementById('lvl-title').textContent=lv.title;
+  document.getElementById('xp-total').textContent=xp;
+  if(lvN){
+    const prog=(xp-lv.min)/(lvN.min-lv.min)*100;
+    document.getElementById('xp-bar').style.width=Math.min(100,prog)+'%';
+    document.getElementById('xp-cur').textContent=xp+' XP';
+    document.getElementById('xp-next').textContent=lvN.min+' XP';
+    document.getElementById('lvl-sub').textContent=(lvN.min-xp)+' XP to '+lvN.title;
+  } else {
+    document.getElementById('xp-bar').style.width='100%';
+    document.getElementById('xp-cur').textContent='MAX LEVEL';
+    document.getElementById('xp-next').textContent='👁️';
+    document.getElementById('lvl-sub').textContent='Maximum rank reached!';
+  }
+}
+
+function renderSummary(){
+  const tasks=patients.reduce((a,p)=>a+p.tasks.length,0);
+  const tasksDone=patients.reduce((a,p)=>a+p.tasks.filter(t=>t.done).length,0);
+  document.getElementById('summary').innerHTML=`
+    <div class="stat"><div class="stat-num accent">${tasksDone}/${tasks}</div><div class="stat-label">Tasks done</div></div>
+    <div class="stat"><div class="stat-num gold">${xpData.total}</div><div class="stat-label">Total XP</div></div>
+  `;
+}
+
+function renderWard(){
+  const list=document.getElementById('ward-list');
+  if(!patients.length){
+    list.innerHTML='<div class="empty"><div class="empty-icon">🏥</div>No patients yet.<br>Use the Admit tab to add one.</div>';
+    return;
+  }
+  list.innerHTML=patients.map((p,idx)=>{
+    const done=p.tasks.filter(t=>t.done).length,total=p.tasks.length;
+    const allDone=total>0&&done===total;
+    const pct=total?done/total*100:0;
+    let bc='badge-pending',bt='Pending';
+    if(allDone){bc='badge-done';bt='✓ Done';}
+    else if(done>0){bc='badge-prog';bt=done+'/'+total;}
+    return `<div class="pt-block">
+      <div class="pt-block-header" onclick="togglePt('${p.id}')">
+        <div class="pt-header-left">
+          <span class="pt-num">${idx+1}.</span>
+          <div class="pt-avatar">${initials(p.name)}</div>
+          <div>
+            <div class="pt-name">${esc(p.name)}</div>
+            <div class="pt-sub">${total?done+'/'+total+' tasks':'No tasks'}</div>
+          </div>
+        </div>
+        <div class="pt-header-right">
+          <span class="badge ${bc}">${bt}</span>
+          <button class="del-pt-btn" onclick="event.stopPropagation();delPatient('${p.id}')">✕</button>
+          <span class="chevron ${p.open?'open':''}">⌄</span>
+        </div>
+      </div>
+      <div class="pt-block-body ${p.open?'open':''}">
+        ${total>0?`<div class="pt-prog"><div class="pt-prog-fill" style="width:${pct}%"></div></div>`:''}
+        ${p.tasks.map(t=>`
+          <div class="task-item">
+            <button class="check-btn ${t.done?'done':''}" onclick="toggleTask('${p.id}','${t.id}')">
+              <svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
+            </button>
+            <span class="task-text ${t.done?'done':''}">${esc(t.text)}</span>
+            <span class="task-xp">+1 XP</span>
+            <button class="del-btn" onclick="delTask('${p.id}','${t.id}')">✕</button>
+          </div>
+        `).join('')}
+        ${!total?'<div style="font-size:12px;color:var(--text3);padding:6px 0 4px;">No tasks yet.</div>':''}
+        <div class="add-row">
+          <input class="add-input" id="ti-${p.id}" placeholder="Add task..." onkeydown="if(event.key==='Enter')addTask('${p.id}')" />
+          <button class="add-btn" onclick="addTask('${p.id}')">+ Add</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderAdmitForm(){
+  const dl=document.getElementById('default-tasks-list');
+  dl.innerHTML=DEFAULT_ADMIT_TASKS.map((t,i)=>`
+    <div class="default-task-row">
+      <button class="dtask-check ${admitDefaultSel.has(i)?'sel':''}" onclick="toggleDefaultTask(${i})">
+        <svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
+      </button>
+      <span class="dtask-label">${esc(t)}</span>
+    </div>
+  `).join('');
+  const cl=document.getElementById('custom-tasks-list');
+  cl.innerHTML=admitCustomTasks.map((t,i)=>`
+    <div class="default-task-row">
+      <button class="dtask-check sel" onclick="removeCustomAdmitTask(${i})">
+        <svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
+      </button>
+      <span class="dtask-label">${esc(t)}</span>
+    </div>
+  `).join('');
+}
+
+function toggleDefaultTask(i){
+  if(admitDefaultSel.has(i))admitDefaultSel.delete(i);else admitDefaultSel.add(i);
+  renderAdmitForm();
+}
+function addCustomAdmitTask(){
+  const inp=document.getElementById('custom-task-input');
+  const val=inp.value.trim();if(!val)return;
+  admitCustomTasks.push(val);inp.value='';renderAdmitForm();
+}
+function removeCustomAdmitTask(i){admitCustomTasks.splice(i,1);renderAdmitForm();}
+
+function admitPatient(){
+  const name=document.getElementById('admit-name').value.trim();
+  if(!name){document.getElementById('admit-name').focus();return;}
+  const tasks=[
+    ...DEFAULT_ADMIT_TASKS.filter((_,i)=>admitDefaultSel.has(i)),
+    ...admitCustomTasks
+  ].map(text=>({id:uid(),text,done:false}));
+  patients.push({id:uid(),name,tasks,open:true});
+  document.getElementById('admit-name').value='';
+  admitCustomTasks=[];
+  admitDefaultSel=new Set(DEFAULT_ADMIT_TASKS.map((_,i)=>i));
+  save();awardXP(1,'Admitted: '+name);renderWard();renderAdmitForm();switchTab('ward');
+}
+
+function renderLog(){
+  const el=document.getElementById('log-list');
+  if(!xpLog.length){el.innerHTML='<div class="empty" style="padding:1rem 0">No XP earned yet.</div>';return;}
+  el.innerHTML=xpLog.map(e=>`
+    <div class="log-row">
+      <span class="log-reason">${esc(e.reason)}</span>
+      <span class="log-time">${e.time}</span>
+      <span class="log-xp">+${e.xp}</span>
+    </div>
+  `).join('');
+}
+
+function switchTab(tab){
+  ['ward','admit','log'].forEach(t=>{
+    document.getElementById('view-'+t).style.display=t===tab?'':'none';
+    document.getElementById('tab-'+t).className='tab'+(t===tab?' active':'');
+  });
+  if(tab==='log')renderLog();
+  if(tab==='admit')renderAdmitForm();
+}
+
+function togglePt(id){const p=patients.find(x=>x.id===id);if(p){p.open=!p.open;save();renderWard();}}
+function delPatient(id){patients=patients.filter(x=>x.id!==id);save();renderWard();renderSummary();}
+function addTask(pid){
+  const inp=document.getElementById('ti-'+pid);if(!inp)return;
+  const val=inp.value.trim();if(!val)return;
+  const p=patients.find(x=>x.id===pid);if(!p)return;
+  p.tasks.push({id:uid(),text:val,done:false});save();renderWard();renderSummary();
+}
+function toggleTask(pid,tid){
+  const p=patients.find(x=>x.id===pid);if(!p)return;
+  const t=p.tasks.find(x=>x.id===tid);if(!t)return;
+  t.done=!t.done;save();renderWard();renderSummary();
+  if(t.done)awardXP(1,p.name+': '+t.text);
+}
+function delTask(pid,tid){
+  const p=patients.find(x=>x.id===pid);if(!p)return;
+  p.tasks=p.tasks.filter(x=>x.id!==tid);save();renderWard();renderSummary();
+}
+
+load();
+renderXP();renderSummary();renderWard();
+document.getElementById('date-label').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+</script>
+</body>
+</html>
