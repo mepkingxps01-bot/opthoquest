@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,6 +7,7 @@
 <title>Ophtho Ward Quest</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -27,8 +29,11 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .app-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--text);line-height:1.1;}
 .app-date{font-size:12px;color:var(--text3);margin-top:4px;}
 .eye-icon{width:44px;height:44px;background:var(--purple-dim);border:0.5px solid var(--border2);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;}
+.sync-dot{width:8px;height:8px;border-radius:50%;background:var(--text3);display:inline-block;margin-left:6px;vertical-align:middle;}
+.sync-dot.online{background:var(--green);}
+.sync-dot.syncing{background:var(--gold);animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
 
-/* XP card */
 .xp-card{background:var(--card);border:0.5px solid var(--border2);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
 .xp-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
 .level-ring{width:44px;height:44px;border-radius:50%;border:2px solid var(--purple);display:flex;align-items:center;justify-content:center;background:var(--purple-dim);flex-shrink:0;}
@@ -43,7 +48,6 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .xp-bar-fill{height:100%;background:linear-gradient(90deg,var(--purple2),var(--gold));border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1);}
 .xp-bar-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text3);}
 
-/* Summary */
 .summary{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px;}
 .stat{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 10px;text-align:center;}
 .stat-num{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;color:var(--text);}
@@ -51,13 +55,11 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .stat-num.gold{color:var(--gold);}
 .stat-label{font-size:10px;color:var(--text3);margin-top:3px;}
 
-/* Tabs */
 .tabs{display:flex;gap:6px;margin-bottom:16px;}
 .tab{flex:1;padding:9px 4px;border-radius:var(--radius-sm);border:0.5px solid rgba(255,255,255,0.15);background:transparent;color:rgba(255,255,255,0.55);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:5px;}
 .tab.active{background:rgba(255,255,255,0.1);border-color:rgba(255,255,255,0.35);color:#ffffff;font-weight:600;}
 .tab:hover:not(.active){background:rgba(255,255,255,0.06);color:rgba(255,255,255,0.8);}
 
-/* Patient blocks */
 .pt-block{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;}
 .pt-block-header{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;transition:background .15s;}
 .pt-block-header:hover{background:rgba(255,255,255,.02);}
@@ -80,7 +82,6 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .pt-prog{height:2px;background:var(--bg2);border-radius:99px;margin:10px 0 12px;overflow:hidden;}
 .pt-prog-fill{height:100%;background:linear-gradient(90deg,var(--teal),#4ec9b0);transition:width .4s;}
 
-/* Tasks */
 .task-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:0.5px solid var(--border);}
 .task-item:first-of-type{border-top:none;}
 .check-btn{width:22px;height:22px;border-radius:7px;border:1.5px solid var(--border2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
@@ -94,7 +95,6 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .task-item:hover .del-btn{opacity:1;}
 .del-btn:hover{color:var(--red);background:var(--red-dim);}
 
-/* Inputs */
 .add-row{display:flex;gap:8px;margin-top:10px;}
 .add-input{flex:1;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:9px 12px;outline:none;transition:border-color .15s;}
 .add-input::placeholder{color:var(--text3);}
@@ -102,7 +102,6 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .add-btn{background:var(--purple-dim);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--purple);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:9px 14px;cursor:pointer;white-space:nowrap;transition:all .15s;}
 .add-btn:hover{background:rgba(139,124,255,.22);}
 
-/* Admit tab */
 .admit-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
 .admit-section-label{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
 .admit-section-label span{width:4px;height:14px;background:var(--purple);border-radius:2px;display:inline-block;}
@@ -110,6 +109,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .admit-big-btn{width:100%;background:linear-gradient(135deg,var(--purple2),var(--purple));border:none;border-radius:var(--radius-sm);color:white;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;padding:13px;cursor:pointer;transition:opacity .15s;letter-spacing:.04em;margin-top:4px;}
 .admit-big-btn:hover{opacity:.88;}
 .admit-big-btn:active{transform:scale(.98);}
+.admit-big-btn:disabled{opacity:.5;cursor:not-allowed;}
 .default-task-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:0.5px solid var(--border);}
 .default-task-row:first-of-type{border-top:none;}
 .dtask-check{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--border2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
@@ -118,7 +118,6 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .dtask-check.sel svg{opacity:1;}
 .dtask-label{flex:1;font-size:13px;color:var(--text);line-height:1.4;}
 
-/* XP Log */
 .log-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:16px;}
 .log-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text);letter-spacing:.04em;text-transform:uppercase;margin-bottom:14px;}
 .log-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-top:0.5px solid var(--border);}
@@ -130,11 +129,9 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .empty{text-align:center;padding:2rem 0;color:var(--text3);font-size:13px;}
 .empty-icon{font-size:32px;margin-bottom:8px;}
 
-/* Toast */
 .xp-toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-80px);background:#1a1535;border:0.5px solid var(--gold);border-radius:99px;padding:8px 18px;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--gold);transition:transform .35s cubic-bezier(.4,0,.2,1);z-index:999;pointer-events:none;white-space:nowrap;}
 .xp-toast.show{transform:translateX(-50%) translateY(0);}
 
-/* Level up */
 .lvlup-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:1000;}
 .lvlup-overlay.show{display:flex;}
 .lvlup-box{background:#1a1535;border:1px solid var(--gold);border-radius:18px;padding:28px 24px;text-align:center;width:280px;}
@@ -143,26 +140,32 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .lvlup-sub{font-size:13px;color:var(--text2);margin-bottom:16px;}
 .lvlup-btn{background:var(--gold-dim);border:0.5px solid var(--gold);border-radius:var(--radius-sm);color:var(--gold);font-family:'DM Sans',sans-serif;font-size:14px;font-weight:500;padding:10px 24px;cursor:pointer;}
 
-/* Bottom bar */
+.loading-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:2000;flex-direction:column;gap:12px;}
+.loading-screen.hidden{display:none;}
+.loading-eye{font-size:40px;animation:spin 2s linear infinite;}
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}  50%{transform:rotate(180deg) scale(1.1);}}
+.loading-text{font-family:'Syne',sans-serif;font-size:13px;color:var(--text3);letter-spacing:.1em;}
+
 .bottom-bar{position:fixed;bottom:0;left:0;right:0;height:34px;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:10;}
 .home-indicator{width:120px;height:4px;background:rgba(255,255,255,0.12);border-radius:99px;}
 
 @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 .pt-block,.task-item{animation:fadeIn .2s ease;}
-
-@media(max-width:480px){
-  .app{max-width:100%;}
-  .topbar{padding-top:24px;}
-}
+@media(max-width:480px){.app{max-width:100%;}.topbar{padding-top:24px;}}
 </style>
 </head>
 <body>
+
+<div class="loading-screen" id="loading-screen">
+  <div class="loading-eye">👁️</div>
+  <div class="loading-text">CONNECTING...</div>
+</div>
 
 <div class="app">
   <div class="topbar">
     <div>
       <div class="app-eyebrow">Ophthalmology</div>
-      <div class="app-title">Ward Quest</div>
+      <div class="app-title">Ward Quest <span class="sync-dot" id="sync-dot"></span></div>
       <div class="app-date" id="date-label"></div>
     </div>
     <div class="eye-icon">👁️</div>
@@ -194,12 +197,10 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
     <button class="tab" id="tab-log" onclick="switchTab('log')">📜 XP Log</button>
   </div>
 
-  <!-- Ward tab -->
   <div id="view-ward">
     <div id="ward-list"></div>
   </div>
 
-  <!-- Admit tab -->
   <div id="view-admit" style="display:none">
     <div class="admit-card">
       <div class="admit-section-label"><span></span>Patient name</div>
@@ -216,11 +217,10 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
           <button class="add-btn" onclick="addCustomAdmitTask()">+ Add</button>
         </div>
       </div>
-      <button class="admit-big-btn" onclick="admitPatient()">🏥 Admit Patient → Ward</button>
+      <button class="admit-big-btn" id="admit-btn" onclick="admitPatient()">🏥 Admit Patient → Ward</button>
     </div>
   </div>
 
-  <!-- XP Log tab -->
   <div id="view-log" style="display:none">
     <div class="log-card">
       <div class="log-title">XP History</div>
@@ -230,7 +230,6 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 </div>
 
 <div class="bottom-bar"><div class="home-indicator"></div></div>
-
 <div class="xp-toast" id="xp-toast">+1 XP</div>
 <div class="lvlup-overlay" id="lvlup-overlay">
   <div class="lvlup-box">
@@ -242,18 +241,22 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 </div>
 
 <script>
-const WARD_KEY='owq3_ward',XP_KEY='owq3_xp',LOG_KEY='owq3_log';
-let patients=[],xpData={total:0},xpLog=[];
+const SUPABASE_URL = 'https://clvqfnhikaedtomvusxy.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_S5B1lov7Jjr0bJC9YmrdDQ_w8rnIUaY';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-const DEFAULT_ADMIT_TASKS=[
- 'คีย์ของ + เช็คของ',
+const DEFAULT_ADMIT_TASKS = [
+  'คีย์ของ + เช็คของ',
   'ใบออเดอร์',
   'ใบ oncase',
   'DC summary',
 ];
 
-let admitCustomTasks=[];
-let admitDefaultSel=new Set(DEFAULT_ADMIT_TASKS.map((_,i)=>i));
+let patients = [];
+let xpTotal = 0;
+let xpLog = [];
+let admitCustomTasks = [];
+let admitDefaultSel = new Set(DEFAULT_ADMIT_TASKS.map((_,i)=>i));
 
 const LEVELS=[
   {min:0,title:'Intern'},{min:10,title:'Resident'},{min:25,title:'Senior Resident'},
@@ -267,15 +270,9 @@ function uid(){return Math.random().toString(36).slice(2,9);}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function initials(n){return n.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||'?';}
 
-function save(){
-  localStorage.setItem(WARD_KEY,JSON.stringify(patients));
-  localStorage.setItem(XP_KEY,JSON.stringify(xpData));
-  localStorage.setItem(LOG_KEY,JSON.stringify(xpLog));
-}
-function load(){
-  try{patients=JSON.parse(localStorage.getItem(WARD_KEY))||[];}catch{patients=[];}
-  try{xpData=JSON.parse(localStorage.getItem(XP_KEY))||{total:0};}catch{xpData={total:0};}
-  try{xpLog=JSON.parse(localStorage.getItem(LOG_KEY))||[];}catch{xpLog=[];}
+function setSyncDot(state){
+  const d=document.getElementById('sync-dot');
+  d.className='sync-dot'+(state?' '+state:'');
 }
 
 let toastTimer=null;
@@ -286,27 +283,8 @@ function showToast(msg){
   toastTimer=setTimeout(()=>t.classList.remove('show'),1600);
 }
 
-function awardXP(amount,reason){
-  const oldLv=getLevel(xpData.total);
-  xpData.total+=amount;
-  const newLv=getLevel(xpData.total);
-  const now=new Date();
-  xpLog.unshift({xp:amount,reason,time:now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})});
-  if(xpLog.length>60)xpLog=xpLog.slice(0,60);
-  save();showToast('+'+amount+' XP');
-  if(newLv>oldLv){
-    setTimeout(()=>{
-      document.getElementById('lvlup-title').textContent='Level '+(newLv+1)+': '+LEVELS[newLv].title+'!';
-      document.getElementById('lvlup-sub').textContent='You are now a '+LEVELS[newLv].title;
-      document.getElementById('lvlup-overlay').classList.add('show');
-    },800);
-  }
-  renderXP();renderSummary();
-}
-function closeLvlUp(){document.getElementById('lvlup-overlay').classList.remove('show');}
-
 function renderXP(){
-  const xp=xpData.total,li=getLevel(xp),lv=LEVELS[li],lvN=LEVELS[li+1]||null;
+  const xp=xpTotal,li=getLevel(xp),lv=LEVELS[li],lvN=LEVELS[li+1]||null;
   document.getElementById('lvl-num').textContent=li+1;
   document.getElementById('lvl-title').textContent=lv.title;
   document.getElementById('xp-total').textContent=xp;
@@ -329,7 +307,7 @@ function renderSummary(){
   const tasksDone=patients.reduce((a,p)=>a+p.tasks.filter(t=>t.done).length,0);
   document.getElementById('summary').innerHTML=`
     <div class="stat"><div class="stat-num accent">${tasksDone}/${tasks}</div><div class="stat-label">Tasks done</div></div>
-    <div class="stat"><div class="stat-num gold">${xpData.total}</div><div class="stat-label">Total XP</div></div>
+    <div class="stat"><div class="stat-num gold">${xpTotal}</div><div class="stat-label">Total XP</div></div>
   `;
 }
 
@@ -416,20 +394,6 @@ function addCustomAdmitTask(){
 }
 function removeCustomAdmitTask(i){admitCustomTasks.splice(i,1);renderAdmitForm();}
 
-function admitPatient(){
-  const name=document.getElementById('admit-name').value.trim();
-  if(!name){document.getElementById('admit-name').focus();return;}
-  const tasks=[
-    ...DEFAULT_ADMIT_TASKS.filter((_,i)=>admitDefaultSel.has(i)),
-    ...admitCustomTasks
-  ].map(text=>({id:uid(),text,done:false}));
-  patients.push({id:uid(),name,tasks,open:true});
-  document.getElementById('admit-name').value='';
-  admitCustomTasks=[];
-  admitDefaultSel=new Set(DEFAULT_ADMIT_TASKS.map((_,i)=>i));
-  save();awardXP(1,'Admitted: '+name);renderWard();renderAdmitForm();switchTab('ward');
-}
-
 function renderLog(){
   const el=document.getElementById('log-list');
   if(!xpLog.length){el.innerHTML='<div class="empty" style="padding:1rem 0">No XP earned yet.</div>';return;}
@@ -451,28 +415,128 @@ function switchTab(tab){
   if(tab==='admit')renderAdmitForm();
 }
 
-function togglePt(id){const p=patients.find(x=>x.id===id);if(p){p.open=!p.open;save();renderWard();}}
-function delPatient(id){patients=patients.filter(x=>x.id!==id);save();renderWard();renderSummary();}
-function addTask(pid){
-  const inp=document.getElementById('ti-'+pid);if(!inp)return;
-  const val=inp.value.trim();if(!val)return;
-  const p=patients.find(x=>x.id===pid);if(!p)return;
-  p.tasks.push({id:uid(),text:val,done:false});save();renderWard();renderSummary();
-}
-function toggleTask(pid,tid){
-  const p=patients.find(x=>x.id===pid);if(!p)return;
-  const t=p.tasks.find(x=>x.id===tid);if(!t)return;
-  t.done=!t.done;save();renderWard();renderSummary();
-  if(t.done)awardXP(1,p.name+': '+t.text);
-}
-function delTask(pid,tid){
-  const p=patients.find(x=>x.id===pid);if(!p)return;
-  p.tasks=p.tasks.filter(x=>x.id!==tid);save();renderWard();renderSummary();
+function closeLvlUp(){document.getElementById('lvlup-overlay').classList.remove('show');}
+
+// ── Supabase helpers ──────────────────────────────────────────
+
+async function loadAll(){
+  setSyncDot('syncing');
+  const [pRes, tRes, xpRes, logRes] = await Promise.all([
+    sb.from('patients').select('*').order('created_at'),
+    sb.from('tasks').select('*').order('created_at'),
+    sb.from('xp_data').select('*').eq('id',1).single(),
+    sb.from('xp_log').select('*').order('created_at',{ascending:false}).limit(60),
+  ]);
+  const pts = pRes.data||[];
+  const tks = tRes.data||[];
+  xpTotal = xpRes.data?.total||0;
+  xpLog = (logRes.data||[]).map(r=>({xp:r.xp,reason:r.reason,time:r.time}));
+  patients = pts.map(p=>({
+    id:p.id, name:p.name, open:p.open,
+    tasks: tks.filter(t=>t.patient_id===p.id).map(t=>({id:t.id,text:t.text,done:t.done}))
+  }));
+  setSyncDot('online');
+  renderXP();renderSummary();renderWard();
+  document.getElementById('loading-screen').classList.add('hidden');
 }
 
-load();
-renderXP();renderSummary();renderWard();
+async function awardXP(amount, reason){
+  const oldLv=getLevel(xpTotal);
+  xpTotal+=amount;
+  const newLv=getLevel(xpTotal);
+  const time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  await Promise.all([
+    sb.from('xp_data').update({total:xpTotal}).eq('id',1),
+    sb.from('xp_log').insert({xp:amount,reason,time}),
+  ]);
+  xpLog.unshift({xp:amount,reason,time});
+  if(xpLog.length>60)xpLog=xpLog.slice(0,60);
+  showToast('+'+amount+' XP');
+  if(newLv>oldLv){
+    setTimeout(()=>{
+      document.getElementById('lvlup-title').textContent='Level '+(newLv+1)+': '+LEVELS[newLv].title+'!';
+      document.getElementById('lvlup-sub').textContent='You are now a '+LEVELS[newLv].title;
+      document.getElementById('lvlup-overlay').classList.add('show');
+    },800);
+  }
+  renderXP();renderSummary();
+}
+
+async function admitPatient(){
+  const name=document.getElementById('admit-name').value.trim();
+  if(!name){document.getElementById('admit-name').focus();return;}
+  const btn=document.getElementById('admit-btn');
+  btn.disabled=true;btn.textContent='Admitting...';
+  const pid=uid();
+  const tasks=[
+    ...DEFAULT_ADMIT_TASKS.filter((_,i)=>admitDefaultSel.has(i)),
+    ...admitCustomTasks
+  ].map(text=>({id:uid(),patient_id:pid,text,done:false}));
+  await sb.from('patients').insert({id:pid,name,open:true});
+  if(tasks.length) await sb.from('tasks').insert(tasks);
+  btn.disabled=false;btn.textContent='🏥 Admit Patient → Ward';
+  document.getElementById('admit-name').value='';
+  admitCustomTasks=[];
+  admitDefaultSel=new Set(DEFAULT_ADMIT_TASKS.map((_,i)=>i));
+  renderAdmitForm();
+  await awardXP(1,'Admitted: '+name);
+  await loadAll();
+  switchTab('ward');
+}
+
+async function togglePt(id){
+  const p=patients.find(x=>x.id===id);if(!p)return;
+  p.open=!p.open;
+  await sb.from('patients').update({open:p.open}).eq('id',id);
+  renderWard();
+}
+
+async function delPatient(id){
+  await sb.from('patients').delete().eq('id',id);
+  await loadAll();
+}
+
+async function addTask(pid){
+  const inp=document.getElementById('ti-'+pid);if(!inp)return;
+  const val=inp.value.trim();if(!val)return;
+  inp.value='';
+  const tid=uid();
+  await sb.from('tasks').insert({id:tid,patient_id:pid,text:val,done:false});
+  await loadAll();
+}
+
+async function toggleTask(pid,tid){
+  const p=patients.find(x=>x.id===pid);if(!p)return;
+  const t=p.tasks.find(x=>x.id===tid);if(!t)return;
+  const wasDone=t.done;
+  t.done=!t.done;
+  await sb.from('tasks').update({done:t.done}).eq('id',tid);
+  renderWard();renderSummary();
+  if(!wasDone) await awardXP(1,p.name+': '+t.text);
+}
+
+async function delTask(pid,tid){
+  await sb.from('tasks').delete().eq('id',tid);
+  await loadAll();
+}
+
+// ── Realtime subscriptions ────────────────────────────────────
+function setupRealtime(){
+  sb.channel('ward-sync')
+    .on('postgres_changes',{event:'*',schema:'public',table:'patients'},()=>loadAll())
+    .on('postgres_changes',{event:'*',schema:'public',table:'tasks'},()=>loadAll())
+    .on('postgres_changes',{event:'*',schema:'public',table:'xp_data'},()=>loadAll())
+    .on('postgres_changes',{event:'*',schema:'public',table:'xp_log'},()=>loadAll())
+    .subscribe(status=>{
+      if(status==='SUBSCRIBED')setSyncDot('online');
+      else setSyncDot('syncing');
+    });
+}
+
+// ── Init ──────────────────────────────────────────────────────
 document.getElementById('date-label').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+renderAdmitForm();
+loadAll().then(()=>setupRealtime());
 </script>
 </body>
 </html>
