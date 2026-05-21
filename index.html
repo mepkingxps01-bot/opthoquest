@@ -546,7 +546,9 @@ function switchTab(tab){
 function closeLvlUp(){document.getElementById('lvlup-overlay').classList.remove('show');}
 
 async function resetWardXP(){
-  if(!confirm('Reset all ward XP to 0?'))return;
+  const pw=prompt('Enter password to reset XP:');
+  if(pw===null)return;
+  if(pw!=='1397'){alert('Incorrect password.');return;}
   xpByWard={a:0,b:0,c:0,d:0};saveXpByWard();
   xpTotal=0;
   await sb.from('xp_data').update({total:0}).eq('id',1);
