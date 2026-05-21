@@ -20,6 +20,19 @@
   --red:#ff7070;--red-dim:rgba(255,112,112,0.1);
   --radius:14px;--radius-sm:9px;
 }
+body.light{
+  --bg:#faf7ee;--bg2:#f1ecde;--bg3:#e8e2d0;--card:#ffffff;
+  --border:rgba(80,60,180,0.1);--border2:rgba(80,60,180,0.18);
+  --purple:#6b5ce7;--purple2:#5040b0;--purple-dim:rgba(107,92,231,0.1);
+  --teal:#2ea89f;
+  --text:#1c1828;--text2:#3a3060;--text3:#7a7098;
+  --green:#1a9e6e;--green-dim:rgba(26,158,110,0.12);
+  --gold:#b07010;--gold-dim:rgba(176,112,16,0.13);
+  --red:#d04040;--red-dim:rgba(208,64,64,0.1);
+}
+body.light::before{background:radial-gradient(ellipse,rgba(107,92,231,0.07) 0%,transparent 70%)!important;}
+  --radius:14px;--radius-sm:9px;
+}
 html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh;}
 body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:600px;height:400px;background:radial-gradient(ellipse,rgba(107,90,205,0.18) 0%,transparent 70%);pointer-events:none;z-index:0;}
 .app{max-width:440px;margin:0 auto;padding:0 16px 100px;position:relative;z-index:1;}
@@ -28,6 +41,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .app-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--text);line-height:1.1;}
 .app-date{font-size:12px;color:var(--text3);margin-top:4px;}
 .eye-icon{width:44px;height:44px;background:var(--purple-dim);border:0.5px solid var(--border2);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;}
+.theme-btn{width:36px;height:36px;background:var(--purple-dim);border:0.5px solid var(--border2);border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;transition:all .2s;}
 .sync-dot{width:8px;height:8px;border-radius:50%;background:var(--text3);display:inline-block;margin-left:6px;vertical-align:middle;}
 .sync-dot.online{background:var(--green);}
 .sync-dot.syncing{background:var(--gold);animation:pulse 1s infinite;}
@@ -194,7 +208,10 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
         <button class="menu-btn" id="menu-btn-c" onclick="selectMenuBtn('c')">C</button>
         <button class="menu-btn" id="menu-btn-d" onclick="selectMenuBtn('d')">D</button>
       </div>
-      <div class="eye-icon">👁️</div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button class="theme-btn" id="theme-btn" onclick="toggleTheme()">☀️</button>
+        <div class="eye-icon">👁️</div>
+      </div>
     </div>
   </div>
 
@@ -697,7 +714,17 @@ function setupRealtime(){
     });
 }
 
+function toggleTheme(){
+  const isLight=document.body.classList.toggle('light');
+  localStorage.setItem('wq_theme',isLight?'light':'dark');
+  document.getElementById('theme-btn').textContent=isLight?'🌙':'☀️';
+}
+
 // ── Init ──────────────────────────────────────────────────────
+if(localStorage.getItem('wq_theme')==='light'){
+  document.body.classList.add('light');
+  document.getElementById('theme-btn').textContent='🌙';
+}
 document.getElementById('date-label').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
 renderAdmitForm();
 loadAll().then(()=>setupRealtime());
