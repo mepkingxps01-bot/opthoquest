@@ -109,6 +109,16 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .add-btn{background:var(--purple-dim);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--purple);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;padding:9px 14px;cursor:pointer;white-space:nowrap;transition:all .15s;}
 .add-btn:hover{background:rgba(139,124,255,.22);}
 
+.pt-actions{display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border);}
+.discharge-btn{flex:1;background:var(--green-dim);border:0.5px solid rgba(110,231,183,0.3);border-radius:var(--radius-sm);color:var(--green);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:8px 4px;cursor:pointer;transition:all .2s;}
+.move-btn{flex:1;background:var(--purple-dim);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--purple);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:8px 4px;cursor:pointer;transition:all .2s;}
+.pt-block.discharged{border-color:rgba(110,231,183,0.5);background:rgba(110,231,183,0.04);}
+.pt-block.discharged .pt-name{color:var(--green);}
+.pt-block.discharged .pt-avatar{background:var(--green-dim);border-color:rgba(110,231,183,0.35);color:var(--green);}
+.badge-dc{background:var(--green-dim);color:var(--green);}
+.move-picker{display:flex;align-items:center;gap:5px;margin-top:8px;flex-wrap:wrap;}
+.move-picker-label{font-size:11px;color:var(--text3);}
+
 .admit-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
 .admit-section-label{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--text2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:10px;display:flex;align-items:center;gap:6px;}
 .admit-section-label span{width:4px;height:14px;background:var(--purple);border-radius:2px;display:inline-block;}
@@ -291,6 +301,13 @@ let wardMap = JSON.parse(localStorage.getItem('wq_ward_map')||'{}');
 function saveWardMap(){localStorage.setItem('wq_ward_map',JSON.stringify(wardMap));}
 let xpByWard = JSON.parse(localStorage.getItem('wq_xp_ward')||'{"a":0,"b":0,"c":0,"d":0}');
 function saveXpByWard(){localStorage.setItem('wq_xp_ward',JSON.stringify(xpByWard));}
+let dischargeMap = JSON.parse(localStorage.getItem('wq_discharge_map')||'{}');
+function saveDischargeMap(){localStorage.setItem('wq_discharge_map',JSON.stringify(dischargeMap));}
+function formatCountdown(ms){
+  if(ms<=0)return'soon';
+  const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000);
+  return h>0?h+'h '+m+'m':m+'m';
+}
 
 const LEVELS=[
   {min:0,title:'Intern'},{min:10,title:'Resident'},{min:25,title:'Senior Resident'},
@@ -363,7 +380,9 @@ function renderWard(){
     let bc='badge-pending',bt='Pending';
     if(allDone){bc='badge-done';bt='✓ Done';}
     else if(done>0){bc='badge-prog';bt=done+'/'+total;}
-    return `<div class="pt-block">
+    const isDc=!!dischargeMap[p.id];
+    const dcRemaining=isDc?Math.max(0,2*60*60*1000-(Date.now()-dischargeMap[p.id])):0;
+    return `<div class="pt-block${isDc?' discharged':''}">
       <div class="pt-block-header" onclick="togglePt('${p.id}')">
         <div class="pt-header-left">
           <span class="pt-num">${idx+1}.</span>
@@ -374,7 +393,7 @@ function renderWard(){
           </div>
         </div>
         <div class="pt-header-right">
-          <span class="badge ${bc}">${bt}</span>
+          ${isDc?`<span class="badge badge-dc">🏁 ${formatCountdown(dcRemaining)}</span>`:`<span class="badge ${bc}">${bt}</span>`}
           <button class="del-pt-btn" onclick="event.stopPropagation();delPatient('${p.id}')">✕</button>
           <span class="chevron ${p.open?'open':''}">⌄</span>
         </div>
@@ -396,9 +415,52 @@ function renderWard(){
           <input class="add-input" id="ti-${p.id}" placeholder="Add task..." onkeydown="if(event.key==='Enter')addTask('${p.id}')" />
           <button class="add-btn" onclick="addTask('${p.id}')">+ Add</button>
         </div>
+        <div class="pt-actions">
+          ${isDc
+            ?`<div style="font-size:12px;color:var(--green);padding:2px 0;">🏁 Discharged — auto-remove in ${formatCountdown(dcRemaining)}</div>`
+            :`<button class="discharge-btn" onclick="dischargePatient('${p.id}')">🏁 Discharge</button>
+              <button class="move-btn" onclick="toggleMovePicker('${p.id}')">↗ Move Ward</button>`
+          }
+        </div>
+        ${!isDc?`<div class="move-picker" id="move-picker-${p.id}" style="display:none">
+          <span class="move-picker-label">Move to</span>
+          ${['a','b','c','d'].map(w=>`<button class="menu-btn${(p.ward||'a')===w?' active':''}" onclick="movePatient('${p.id}','${w}')">${w.toUpperCase()}</button>`).join('')}
+        </div>`:''}
       </div>
     </div>`;
   }).join('');
+}
+
+function dischargePatient(pid){
+  if(dischargeMap[pid])return;
+  dischargeMap[pid]=Date.now();
+  saveDischargeMap();
+  const remaining=2*60*60*1000;
+  setTimeout(()=>autoDeleteDischarged(pid),remaining);
+  renderWard();
+}
+
+async function autoDeleteDischarged(pid){
+  const ts=dischargeMap[pid];if(!ts)return;
+  const elapsed=Date.now()-ts;
+  if(elapsed<2*60*60*1000){setTimeout(()=>autoDeleteDischarged(pid),2*60*60*1000-elapsed);return;}
+  delete dischargeMap[pid];delete wardMap[pid];
+  saveDischargeMap();saveWardMap();
+  await sb.from('tasks').delete().eq('patient_id',pid);
+  await sb.from('patients').delete().eq('id',pid);
+  await loadAll();
+}
+
+function toggleMovePicker(pid){
+  const el=document.getElementById('move-picker-'+pid);
+  if(el)el.style.display=el.style.display==='none'?'flex':'none';
+}
+
+async function movePatient(pid,ward){
+  const p=patients.find(x=>x.id===pid);if(!p)return;
+  p.ward=ward;wardMap[pid]=ward;saveWardMap();
+  sb.from('patients').update({ward}).eq('id',pid).then(()=>{});
+  renderWard();
 }
 
 function renderAdmitForm(){
@@ -483,13 +545,25 @@ async function loadAll(){
     sb.from('xp_data').select('*').eq('id',1).single(),
     sb.from('xp_log').select('*').order('created_at',{ascending:false}).limit(60),
   ]);
-  const pts = pRes.data||[];
+  let pts = pRes.data||[];
   const tks = tRes.data||[];
   xpTotal = xpRes.data?.total||0;
   xpLog = (logRes.data||[]).map(r=>({xp:r.xp,reason:r.reason,time:r.time}));
   if(xpTotal>0 && Object.values(xpByWard).every(v=>v===0)){
     xpByWard['a']=xpTotal;saveXpByWard();
   }
+  const now=Date.now();const toDelete=[];
+  for(const [pid,ts] of Object.entries(dischargeMap)){
+    if(now-ts>=2*60*60*1000)toDelete.push(pid);
+    else setTimeout(()=>autoDeleteDischarged(pid),2*60*60*1000-(now-ts));
+  }
+  for(const pid of toDelete){
+    delete dischargeMap[pid];delete wardMap[pid];
+    await sb.from('tasks').delete().eq('patient_id',pid);
+    await sb.from('patients').delete().eq('id',pid);
+    pts=pts.filter(p=>p.id!==pid);
+  }
+  if(toDelete.length){saveDischargeMap();saveWardMap();}
   patients = pts.map(p=>({
     id:p.id, name:p.name, open:p.open, ward:p.ward||wardMap[p.id]||'a',
     tasks: tks.filter(t=>t.patient_id===p.id).map(t=>({id:t.id,text:t.text,done:t.done}))
