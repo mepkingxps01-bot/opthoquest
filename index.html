@@ -51,6 +51,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .xp-right{text-align:right;}
 .xp-num{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--gold);}
 .xp-label{font-size:10px;color:var(--text3);letter-spacing:.05em;}
+.xp-reset-btn{margin-top:4px;background:none;border:0.5px solid var(--border2);border-radius:99px;color:var(--text3);font-family:'DM Sans',sans-serif;font-size:10px;padding:2px 8px;cursor:pointer;}
 .xp-bar-wrap{height:6px;background:var(--bg2);border-radius:99px;margin-bottom:6px;overflow:hidden;}
 .xp-bar-fill{height:100%;background:linear-gradient(90deg,var(--purple2),var(--gold));border-radius:99px;transition:width .5s cubic-bezier(.4,0,.2,1);}
 .xp-bar-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text3);}
@@ -209,6 +210,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
       <div class="xp-right">
         <div class="xp-num" id="xp-total">0</div>
         <div class="xp-label">TOTAL XP</div>
+        <button class="xp-reset-btn" onclick="resetWardXP()">↺ Reset</button>
       </div>
     </div>
     <div class="xp-bar-wrap"><div class="xp-bar-fill" id="xp-bar" style="width:0%"></div></div>
@@ -542,6 +544,14 @@ function switchTab(tab){
 }
 
 function closeLvlUp(){document.getElementById('lvlup-overlay').classList.remove('show');}
+
+async function resetWardXP(){
+  if(!confirm('Reset all ward XP to 0?'))return;
+  xpByWard={a:0,b:0,c:0,d:0};saveXpByWard();
+  xpTotal=0;
+  await sb.from('xp_data').update({total:0}).eq('id',1);
+  renderXP();renderSummary();
+}
 
 // ── Supabase helpers ──────────────────────────────────────────
 
