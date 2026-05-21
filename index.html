@@ -525,7 +525,11 @@ async function admitPatient(){
   ].map(text=>({id:uid(),patient_id:pid,text,done:false}));
   wardMap[pid]=admitTargetWard;
   saveWardMap();
-  await sb.from('patients').insert({id:pid,name,open:true});
+  try{
+    await sb.from('patients').insert({id:pid,name,open:true,ward:admitTargetWard});
+  }catch(e){
+    await sb.from('patients').insert({id:pid,name,open:true});
+  }
   if(tasks.length) await sb.from('tasks').insert(tasks);
   btn.disabled=false;btn.textContent='🏥 Admit Patient → Ward';
   document.getElementById('admit-name').value='';
