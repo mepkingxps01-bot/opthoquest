@@ -534,6 +534,7 @@ async function admitPatient(){
   renderAdmitForm();
   await awardXP(1,'Admitted: '+name);
   await loadAll();
+  selectMenuBtn(admitTargetWard);
   switchTab('ward');
 }
 
