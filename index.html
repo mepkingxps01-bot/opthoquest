@@ -32,6 +32,10 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .sync-dot.online{background:var(--green);}
 .sync-dot.syncing{background:var(--gold);animation:pulse 1s infinite;}
 @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.menu-btn-group{display:flex;gap:3px;background:var(--bg2);border:0.5px solid var(--border);border-radius:99px;padding:3px;}
+.menu-btn{background:transparent;border:none;color:rgba(255,255,255,0.5);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;width:28px;height:28px;border-radius:99px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;letter-spacing:.03em;}
+.menu-btn.active{background:var(--purple);color:#fff;box-shadow:0 0 8px rgba(139,124,255,0.4);}
+.menu-btn:hover:not(.active){background:var(--purple-dim);color:var(--text);}
 
 .xp-card{background:var(--card);border:0.5px solid var(--border2);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
 .xp-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
@@ -167,7 +171,15 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
       <div class="app-title">Ward Quest <span class="sync-dot" id="sync-dot"></span></div>
       <div class="app-date" id="date-label"></div>
     </div>
-    <div class="eye-icon">👁️</div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+      <div class="menu-btn-group">
+        <button class="menu-btn active" id="menu-btn-a" onclick="selectMenuBtn('a')">A</button>
+        <button class="menu-btn" id="menu-btn-b" onclick="selectMenuBtn('b')">B</button>
+        <button class="menu-btn" id="menu-btn-c" onclick="selectMenuBtn('c')">C</button>
+        <button class="menu-btn" id="menu-btn-d" onclick="selectMenuBtn('d')">D</button>
+      </div>
+      <div class="eye-icon">👁️</div>
+    </div>
   </div>
 
   <div class="xp-card">
@@ -407,6 +419,12 @@ function renderLog(){
       <span class="log-xp">+${e.xp}</span>
     </div>
   `).join('');
+}
+
+function selectMenuBtn(btn){
+  ['a','b','c','d'].forEach(b=>{
+    document.getElementById('menu-btn-'+b).className='menu-btn'+(b===btn?' active':'');
+  });
 }
 
 function switchTab(tab){
