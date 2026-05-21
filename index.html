@@ -289,6 +289,8 @@ let activeWard = 'a';
 let admitTargetWard = 'a';
 let wardMap = JSON.parse(localStorage.getItem('wq_ward_map')||'{}');
 function saveWardMap(){localStorage.setItem('wq_ward_map',JSON.stringify(wardMap));}
+let xpByWard = JSON.parse(localStorage.getItem('wq_xp_ward')||'{"a":0,"b":0,"c":0,"d":0}');
+function saveXpByWard(){localStorage.setItem('wq_xp_ward',JSON.stringify(xpByWard));}
 
 const LEVELS=[
   {min:0,title:'Intern'},{min:10,title:'Resident'},{min:25,title:'Senior Resident'},
@@ -316,7 +318,7 @@ function showToast(msg){
 }
 
 function renderXP(){
-  const xp=xpTotal,li=getLevel(xp),lv=LEVELS[li],lvN=LEVELS[li+1]||null;
+  const xp=xpByWard[activeWard]||0,li=getLevel(xp),lv=LEVELS[li],lvN=LEVELS[li+1]||null;
   document.getElementById('lvl-num').textContent=li+1;
   document.getElementById('lvl-title').textContent=lv.title;
   document.getElementById('xp-total').textContent=xp;
@@ -335,11 +337,12 @@ function renderXP(){
 }
 
 function renderSummary(){
-  const tasks=patients.reduce((a,p)=>a+p.tasks.length,0);
-  const tasksDone=patients.reduce((a,p)=>a+p.tasks.filter(t=>t.done).length,0);
+  const wardPts=patients.filter(p=>(p.ward||'a')===activeWard);
+  const tasks=wardPts.reduce((a,p)=>a+p.tasks.length,0);
+  const tasksDone=wardPts.reduce((a,p)=>a+p.tasks.filter(t=>t.done).length,0);
   document.getElementById('summary').innerHTML=`
     <div class="stat"><div class="stat-num accent">${tasksDone}/${tasks}</div><div class="stat-label">Tasks done</div></div>
-    <div class="stat"><div class="stat-num gold">${xpTotal}</div><div class="stat-label">Total XP</div></div>
+    <div class="stat"><div class="stat-num gold">${xpByWard[activeWard]||0}</div><div class="stat-label">Ward XP</div></div>
   `;
 }
 
@@ -447,7 +450,7 @@ function selectMenuBtn(btn){
   ['a','b','c','d'].forEach(b=>{
     document.getElementById('menu-btn-'+b).className='menu-btn'+(b===btn?' active':'');
   });
-  renderWard();
+  renderXP();renderSummary();renderWard();
 }
 function setAdmitWard(btn){
   admitTargetWard=btn;
@@ -484,6 +487,9 @@ async function loadAll(){
   const tks = tRes.data||[];
   xpTotal = xpRes.data?.total||0;
   xpLog = (logRes.data||[]).map(r=>({xp:r.xp,reason:r.reason,time:r.time}));
+  if(xpTotal>0 && Object.values(xpByWard).every(v=>v===0)){
+    xpByWard['a']=xpTotal;saveXpByWard();
+  }
   patients = pts.map(p=>({
     id:p.id, name:p.name, open:p.open, ward:p.ward||wardMap[p.id]||'a',
     tasks: tks.filter(t=>t.patient_id===p.id).map(t=>({id:t.id,text:t.text,done:t.done}))
@@ -493,10 +499,13 @@ async function loadAll(){
   document.getElementById('loading-screen').classList.add('hidden');
 }
 
-async function awardXP(amount, reason){
-  const oldLv=getLevel(xpTotal);
+async function awardXP(amount, reason, ward){
+  const w=ward||activeWard;
+  const oldLv=getLevel(xpByWard[w]||0);
+  xpByWard[w]=(xpByWard[w]||0)+amount;
+  saveXpByWard();
   xpTotal+=amount;
-  const newLv=getLevel(xpTotal);
+  const newLv=getLevel(xpByWard[w]);
   const time=new Date().toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
   await Promise.all([
     sb.from('xp_data').update({total:xpTotal}).eq('id',1),
@@ -539,7 +548,7 @@ async function admitPatient(){
   admitCustomTasks=[];
   admitDefaultSel=new Set(DEFAULT_ADMIT_TASKS.map((_,i)=>i));
   renderAdmitForm();
-  await awardXP(1,'Admitted: '+name);
+  await awardXP(1,'Admitted: '+name, admitTargetWard);
   await loadAll();
   selectMenuBtn(admitTargetWard);
   switchTab('ward');
@@ -573,7 +582,7 @@ async function toggleTask(pid,tid){
   t.done=!t.done;
   await sb.from('tasks').update({done:t.done}).eq('id',tid);
   renderWard();renderSummary();
-  if(!wasDone) await awardXP(1,p.name+': '+t.text);
+  if(!wasDone) await awardXP(1,p.name+': '+t.text, p.ward||'a');
 }
 
 async function delTask(pid,tid){
