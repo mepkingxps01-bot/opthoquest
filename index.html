@@ -311,10 +311,10 @@ function formatCountdown(ms){
 }
 
 const LEVELS=[
-  {min:0,title:'Intern'},{min:10,title:'Resident'},{min:25,title:'Senior Resident'},
-  {min:50,title:'Registrar'},{min:100,title:'Fellow'},{min:200,title:'Consultant'},
-  {min:400,title:'Senior Consultant'},{min:700,title:'Associate Professor'},
-  {min:1100,title:'Professor'},{min:1600,title:'Chief of Ophthalmology'},
+  {min:0,title:'Intern'},{min:1000,title:'Resident'},{min:2500,title:'Senior Resident'},
+  {min:5000,title:'Registrar'},{min:10000,title:'Fellow'},{min:20000,title:'Consultant'},
+  {min:40000,title:'Senior Consultant'},{min:70000,title:'Associate Professor'},
+  {min:110000,title:'Professor'},{min:160000,title:'Chief of Ophthalmology'},
 ];
 
 function getLevel(xp){for(let i=LEVELS.length-1;i>=0;i--){if(xp>=LEVELS[i].min)return i;}return 0;}
