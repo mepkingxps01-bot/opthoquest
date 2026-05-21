@@ -221,10 +221,10 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
       <div class="admit-ward-row">
         <div class="admit-section-label" style="margin:0"><span></span>Admit to ward</div>
         <div class="menu-btn-group">
-          <button class="menu-btn active" id="admit-ward-btn-a" onclick="selectMenuBtn('a')">A</button>
-          <button class="menu-btn" id="admit-ward-btn-b" onclick="selectMenuBtn('b')">B</button>
-          <button class="menu-btn" id="admit-ward-btn-c" onclick="selectMenuBtn('c')">C</button>
-          <button class="menu-btn" id="admit-ward-btn-d" onclick="selectMenuBtn('d')">D</button>
+          <button class="menu-btn active" id="admit-ward-btn-a" onclick="setAdmitWard('a')">A</button>
+          <button class="menu-btn" id="admit-ward-btn-b" onclick="setAdmitWard('b')">B</button>
+          <button class="menu-btn" id="admit-ward-btn-c" onclick="setAdmitWard('c')">C</button>
+          <button class="menu-btn" id="admit-ward-btn-d" onclick="setAdmitWard('d')">D</button>
         </div>
       </div>
       <div class="admit-section-label"><span></span>Patient name</div>
@@ -286,6 +286,7 @@ let xpLog = [];
 let admitCustomTasks = [];
 let admitDefaultSel = new Set(DEFAULT_ADMIT_TASKS.map((_,i)=>i));
 let activeWard = 'a';
+let admitTargetWard = 'a';
 let wardMap = JSON.parse(localStorage.getItem('wq_ward_map')||'{}');
 function saveWardMap(){localStorage.setItem('wq_ward_map',JSON.stringify(wardMap));}
 
@@ -445,10 +446,15 @@ function selectMenuBtn(btn){
   activeWard=btn;
   ['a','b','c','d'].forEach(b=>{
     document.getElementById('menu-btn-'+b).className='menu-btn'+(b===btn?' active':'');
+  });
+  renderWard();
+}
+function setAdmitWard(btn){
+  admitTargetWard=btn;
+  ['a','b','c','d'].forEach(b=>{
     const ab=document.getElementById('admit-ward-btn-'+b);
     if(ab)ab.className='menu-btn'+(b===btn?' active':'');
   });
-  renderWard();
 }
 
 function switchTab(tab){
@@ -457,7 +463,7 @@ function switchTab(tab){
     document.getElementById('tab-'+t).className='tab'+(t===tab?' active':'');
   });
   if(tab==='log')renderLog();
-  if(tab==='admit')renderAdmitForm();
+  if(tab==='admit'){setAdmitWard(activeWard);renderAdmitForm();}
 }
 
 function closeLvlUp(){document.getElementById('lvlup-overlay').classList.remove('show');}
@@ -517,7 +523,7 @@ async function admitPatient(){
     ...DEFAULT_ADMIT_TASKS.filter((_,i)=>admitDefaultSel.has(i)),
     ...admitCustomTasks
   ].map(text=>({id:uid(),patient_id:pid,text,done:false}));
-  wardMap[pid]=activeWard;
+  wardMap[pid]=admitTargetWard;
   saveWardMap();
   await sb.from('patients').insert({id:pid,name,open:true});
   if(tasks.length) await sb.from('tasks').insert(tasks);
@@ -528,6 +534,7 @@ async function admitPatient(){
   renderAdmitForm();
   await awardXP(1,'Admitted: '+name);
   await loadAll();
+  selectMenuBtn(admitTargetWard);
   switchTab('ward');
 }
 
