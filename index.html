@@ -36,6 +36,10 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .menu-btn{background:transparent;border:none;color:rgba(255,255,255,0.5);font-family:'Syne',sans-serif;font-size:11px;font-weight:700;width:28px;height:28px;border-radius:99px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;letter-spacing:.03em;}
 .menu-btn.active{background:var(--purple);color:#fff;box-shadow:0 0 8px rgba(139,124,255,0.4);}
 .menu-btn:hover:not(.active){background:var(--purple-dim);color:var(--text);}
+.ward-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:4px 2px;}
+.ward-header span:first-child{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--purple);letter-spacing:.08em;text-transform:uppercase;}
+.ward-count{font-size:11px;color:var(--text3);}
+.admit-ward-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
 
 .xp-card{background:var(--card);border:0.5px solid var(--border2);border-radius:var(--radius);padding:16px;margin-bottom:14px;}
 .xp-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
@@ -214,6 +218,15 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 
   <div id="view-admit" style="display:none">
     <div class="admit-card">
+      <div class="admit-ward-row">
+        <div class="admit-section-label" style="margin:0"><span></span>Admit to ward</div>
+        <div class="menu-btn-group">
+          <button class="menu-btn active" id="admit-ward-btn-a" onclick="selectMenuBtn('a')">A</button>
+          <button class="menu-btn" id="admit-ward-btn-b" onclick="selectMenuBtn('b')">B</button>
+          <button class="menu-btn" id="admit-ward-btn-c" onclick="selectMenuBtn('c')">C</button>
+          <button class="menu-btn" id="admit-ward-btn-d" onclick="selectMenuBtn('d')">D</button>
+        </div>
+      </div>
       <div class="admit-section-label"><span></span>Patient name</div>
       <div class="admit-name-row">
         <input class="add-input" id="admit-name" placeholder="e.g. Mr John, Bed 4..." style="margin:0;" />
@@ -272,6 +285,9 @@ let xpTotal = 0;
 let xpLog = [];
 let admitCustomTasks = [];
 let admitDefaultSel = new Set(DEFAULT_ADMIT_TASKS.map((_,i)=>i));
+let activeWard = 'a';
+let wardMap = JSON.parse(localStorage.getItem('wq_ward_map')||'{}');
+function saveWardMap(){localStorage.setItem('wq_ward_map',JSON.stringify(wardMap));}
 
 const LEVELS=[
   {min:0,title:'Intern'},{min:10,title:'Resident'},{min:25,title:'Senior Resident'},
@@ -328,11 +344,15 @@ function renderSummary(){
 
 function renderWard(){
   const list=document.getElementById('ward-list');
-  if(!patients.length){
-    list.innerHTML='<div class="empty"><div class="empty-icon">🏥</div>No patients yet.<br>Use the Admit tab to add one.</div>';
+  const wardPts=patients.filter(p=>(p.ward||'a')===activeWard);
+  const wardLabel='Ward '+activeWard.toUpperCase();
+  const countLabel=wardPts.length+' patient'+(wardPts.length!==1?'s':'');
+  const header=`<div class="ward-header"><span>${wardLabel}</span><span class="ward-count">${countLabel}</span></div>`;
+  if(!wardPts.length){
+    list.innerHTML=header+'<div class="empty"><div class="empty-icon">🏥</div>No patients in '+wardLabel+'.<br>Use the Admit tab to add one.</div>';
     return;
   }
-  list.innerHTML=patients.map((p,idx)=>{
+  list.innerHTML=header+wardPts.map((p,idx)=>{
     const done=p.tasks.filter(t=>t.done).length,total=p.tasks.length;
     const allDone=total>0&&done===total;
     const pct=total?done/total*100:0;
@@ -422,9 +442,13 @@ function renderLog(){
 }
 
 function selectMenuBtn(btn){
+  activeWard=btn;
   ['a','b','c','d'].forEach(b=>{
     document.getElementById('menu-btn-'+b).className='menu-btn'+(b===btn?' active':'');
+    const ab=document.getElementById('admit-ward-btn-'+b);
+    if(ab)ab.className='menu-btn'+(b===btn?' active':'');
   });
+  renderWard();
 }
 
 function switchTab(tab){
@@ -453,7 +477,7 @@ async function loadAll(){
   xpTotal = xpRes.data?.total||0;
   xpLog = (logRes.data||[]).map(r=>({xp:r.xp,reason:r.reason,time:r.time}));
   patients = pts.map(p=>({
-    id:p.id, name:p.name, open:p.open,
+    id:p.id, name:p.name, open:p.open, ward:p.ward||wardMap[p.id]||'a',
     tasks: tks.filter(t=>t.patient_id===p.id).map(t=>({id:t.id,text:t.text,done:t.done}))
   }));
   setSyncDot('online');
@@ -493,6 +517,8 @@ async function admitPatient(){
     ...DEFAULT_ADMIT_TASKS.filter((_,i)=>admitDefaultSel.has(i)),
     ...admitCustomTasks
   ].map(text=>({id:uid(),patient_id:pid,text,done:false}));
+  wardMap[pid]=activeWard;
+  saveWardMap();
   await sb.from('patients').insert({id:pid,name,open:true});
   if(tasks.length) await sb.from('tasks').insert(tasks);
   btn.disabled=false;btn.textContent='🏥 Admit Patient → Ward';
