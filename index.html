@@ -511,9 +511,14 @@ async function editPatientName(pid, currentName){
   renderWard();
 }
 
-function relocatePatient(pid){
-  sectionMap[pid]=getSection(pid)==='ward'?'nonward':'ward';
+async function relocatePatient(pid){
+  const newSection=getSection(pid)==='ward'?'nonward':'ward';
+  sectionMap[pid]=newSection;
   saveSectionMap();
+  const {error}=await sb.from('patients').update({section:newSection}).eq('id',pid);
+  if(error&&error.message&&error.message.toLowerCase().includes('section')){
+    alert('Run this SQL in Supabase to enable cross-device sync:\nALTER TABLE patients ADD COLUMN IF NOT EXISTS section text DEFAULT \'ward\';');
+  }
   renderWard();
 }
 
@@ -581,6 +586,7 @@ function renderLog(){
 
 function selectMenuBtn(btn){
   activeWard=btn;
+  localStorage.setItem('wq_active_ward',btn);
   ['a','b','c','d'].forEach(b=>{
     document.getElementById('menu-btn-'+b).className='menu-btn'+(b===btn?' active':'');
   });
@@ -650,6 +656,9 @@ async function loadAll(){
     id:p.id, name:p.name, open:p.open, ward:p.ward||wardMap[p.id]||'a',
     tasks: tks.filter(t=>t.patient_id===p.id).map(t=>({id:t.id,text:t.text,done:t.done}))
   }));
+  let secUpdated=false;
+  pts.forEach(p=>{if(p.section){sectionMap[p.id]=p.section;secUpdated=true;}});
+  if(secUpdated)saveSectionMap();
   setSyncDot('online');
   renderXP();renderSummary();renderWard();
   document.getElementById('loading-screen').classList.add('hidden');
@@ -771,6 +780,8 @@ if(localStorage.getItem('wq_theme')==='light'){
   document.getElementById('theme-btn').textContent='🌙';
 }
 document.getElementById('date-label').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+const _initWard=localStorage.getItem('wq_active_ward')||'a';
+if(_initWard!=='a')selectMenuBtn(_initWard);
 renderAdmitForm();
 loadAll().then(()=>setupRealtime());
 </script>
