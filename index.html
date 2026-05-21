@@ -455,6 +455,8 @@ function setAdmitWard(btn){
     const ab=document.getElementById('admit-ward-btn-'+b);
     if(ab)ab.className='menu-btn'+(b===btn?' active':'');
   });
+  const ab=document.getElementById('admit-btn');
+  if(ab&&!ab.disabled)ab.textContent='🏥 Admit to Ward '+btn.toUpperCase()+' →';
 }
 
 function switchTab(tab){
@@ -525,13 +527,14 @@ async function admitPatient(){
   ].map(text=>({id:uid(),patient_id:pid,text,done:false}));
   wardMap[pid]=admitTargetWard;
   saveWardMap();
-  try{
-    await sb.from('patients').insert({id:pid,name,open:true,ward:admitTargetWard});
-  }catch(e){
-    await sb.from('patients').insert({id:pid,name,open:true});
+  const {error:insertErr}=await sb.from('patients').insert({id:pid,name,open:true,ward:admitTargetWard});
+  if(insertErr){
+    btn.disabled=false;btn.textContent='🏥 Admit to Ward '+admitTargetWard.toUpperCase()+' →';
+    alert('Error: '+insertErr.message+'\n\nRun this SQL in Supabase:\nALTER TABLE patients ADD COLUMN IF NOT EXISTS ward text DEFAULT \'a\';');
+    return;
   }
   if(tasks.length) await sb.from('tasks').insert(tasks);
-  btn.disabled=false;btn.textContent='🏥 Admit Patient → Ward';
+  btn.disabled=false;btn.textContent='🏥 Admit to Ward '+admitTargetWard.toUpperCase()+' →';
   document.getElementById('admit-name').value='';
   admitCustomTasks=[];
   admitDefaultSel=new Set(DEFAULT_ADMIT_TASKS.map((_,i)=>i));
