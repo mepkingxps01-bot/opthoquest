@@ -286,6 +286,8 @@ let xpLog = [];
 let admitCustomTasks = [];
 let admitDefaultSel = new Set(DEFAULT_ADMIT_TASKS.map((_,i)=>i));
 let activeWard = 'a';
+let wardMap = JSON.parse(localStorage.getItem('wq_ward_map')||'{}');
+function saveWardMap(){localStorage.setItem('wq_ward_map',JSON.stringify(wardMap));}
 
 const LEVELS=[
   {min:0,title:'Intern'},{min:10,title:'Resident'},{min:25,title:'Senior Resident'},
@@ -475,7 +477,7 @@ async function loadAll(){
   xpTotal = xpRes.data?.total||0;
   xpLog = (logRes.data||[]).map(r=>({xp:r.xp,reason:r.reason,time:r.time}));
   patients = pts.map(p=>({
-    id:p.id, name:p.name, open:p.open, ward:p.ward||'a',
+    id:p.id, name:p.name, open:p.open, ward:p.ward||wardMap[p.id]||'a',
     tasks: tks.filter(t=>t.patient_id===p.id).map(t=>({id:t.id,text:t.text,done:t.done}))
   }));
   setSyncDot('online');
@@ -515,7 +517,9 @@ async function admitPatient(){
     ...DEFAULT_ADMIT_TASKS.filter((_,i)=>admitDefaultSel.has(i)),
     ...admitCustomTasks
   ].map(text=>({id:uid(),patient_id:pid,text,done:false}));
-  await sb.from('patients').insert({id:pid,name,open:true,ward:activeWard});
+  wardMap[pid]=activeWard;
+  saveWardMap();
+  await sb.from('patients').insert({id:pid,name,open:true});
   if(tasks.length) await sb.from('tasks').insert(tasks);
   btn.disabled=false;btn.textContent='🏥 Admit Patient → Ward';
   document.getElementById('admit-name').value='';
