@@ -109,6 +109,8 @@ serve(async (req) => {
   for (const event of events) {
     if (event.type !== "message" || event.message.type !== "text") continue;
 
+    console.log("LINE SOURCE:", JSON.stringify(event.source));
+
     const text = event.message.text.trim();
 
     // Only respond when message starts with @ไลไล
