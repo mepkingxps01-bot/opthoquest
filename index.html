@@ -496,7 +496,15 @@ async function togglePt(id){
 }
 
 async function delPatient(id){
+  const patient = patients.find(p => p.id === id);
   await sb.from('patients').delete().eq('id',id);
+  if(patient){
+    fetch('https://clvqfnhikaedtomvusxy.supabase.co/functions/v1/line-notify',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'DELETE',table:'patients',old_record:{name:patient.name}})
+    });
+  }
   await loadAll();
 }
 
