@@ -535,8 +535,16 @@ async function relocatePatient(pid){
 }
 
 function cancelDischarge(pid){
+  const patient = patients.find(p => p.id === pid);
   delete dischargeMap[pid];
   saveDischargeMap();
+  if(patient){
+    fetch('https://clvqfnhikaedtomvusxy.supabase.co/functions/v1/line-notify',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'CANCEL_DISCHARGE',table:'patients',old_record:{name:patient.name}})
+    });
+  }
   renderWard();
 }
 
