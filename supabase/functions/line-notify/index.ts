@@ -80,10 +80,7 @@ serve(async (req) => {
 
     if (table === "patients" && type === "DELETE") {
       const name = old_record?.name ?? "ไม่ทราบชื่อ";
-      const message = await askClaude(
-        `ผู้ป่วย "${name}" ได้รับการ discharge จากหอผู้ป่วยจักษุวิทยาแล้ว เขียนข้อความแจ้งเตือน`
-      );
-      await linePush(`🏥 ${message}`);
+      await linePush(`"${name}"\n• discharge แล้วเจ้าค่ะ 🏥`);
     }
 
     return new Response("OK", { status: 200, headers: corsHeaders });
