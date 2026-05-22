@@ -59,37 +59,22 @@ serve(async (req) => {
     const { type, table, record, old_record } = payload;
 
     if (table === "tasks" && type === "UPDATE") {
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      const { data: patient } = await supabase
+        .from("patients")
+        .select("name")
+        .eq("id", record.patient_id)
+        .single();
+      const patientName = patient?.name ?? "ไม่ทราบชื่อ";
+
       if (record?.done === true && old_record?.done === false) {
-        const supabase = createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-        );
-        const { data: patient } = await supabase
-          .from("patients")
-          .select("name")
-          .eq("id", record.patient_id)
-          .single();
-
-        const patientName = patient?.name ?? "ไม่ทราบชื่อ";
-        const message = await askClaude(
-          `งาน "${record.text}" ของผู้ป่วย "${patientName}" เสร็จแล้ว เขียนข้อความแจ้งเตือน`
-        );
-        await linePush(`✅ ${message}`);
+        await linePush(`${patientName}\n"${record.text}" เสร็จเรียบร้อยเจ้าค่ะ ✅`);
       }
-
       if (record?.done === false && old_record?.done === true) {
-        const supabase = createClient(
-          Deno.env.get("SUPABASE_URL")!,
-          Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-        );
-        const { data: patient } = await supabase
-          .from("patients")
-          .select("name")
-          .eq("id", record.patient_id)
-          .single();
-
-        const patientName = patient?.name ?? "ไม่ทราบชื่อ";
-        await linePush(`↩️ ยกเลิก task — ${patientName}: "${record.text}"`);
+        await linePush(`${patientName}\n"${record.text}" มันยังไม่เสร็จ ❌`);
       }
     }
 
