@@ -199,6 +199,15 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .loading-text{font-family:'Syne',sans-serif;font-size:13px;color:var(--text3);letter-spacing:.1em;}
 
 .bottom-bar{position:fixed;bottom:0;left:0;right:0;height:34px;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:10;}
+.round-bar{background:var(--card);border:0.5px solid var(--border2);border-radius:var(--radius);padding:12px 16px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.round-bar-left{display:flex;flex-direction:column;gap:2px;}
+.round-label{font-size:10px;font-weight:700;color:var(--purple);letter-spacing:.1em;text-transform:uppercase;}
+.digital-clock{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--text);letter-spacing:.05em;}
+.round-bar-right{display:flex;align-items:center;gap:8px;}
+.round-time-input{background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;padding:8px 10px;outline:none;width:110px;}
+.round-time-input:focus{border-color:var(--purple);}
+.round-now-btn{background:var(--purple-dim);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--purple);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:8px 12px;cursor:pointer;white-space:nowrap;}
+.round-now-btn:hover{background:rgba(139,124,255,.22);}
 .home-indicator{width:120px;height:4px;background:var(--indicator);border-radius:99px;}
 
 @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
@@ -259,6 +268,17 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
     <button class="tab active" id="tab-ward" onclick="switchTab('ward')">📋 Ward</button>
     <button class="tab" id="tab-admit" onclick="switchTab('admit')">🏥 Admit</button>
     <button class="tab" id="tab-log" onclick="switchTab('log')">📜 XP Log</button>
+  </div>
+
+  <div class="round-bar">
+    <div class="round-bar-left">
+      <div class="round-label">⏰ เวลาราวนด์</div>
+      <div class="digital-clock" id="digital-clock">00:00</div>
+    </div>
+    <div class="round-bar-right">
+      <input type="time" id="round-time-input" class="round-time-input" />
+      <button class="round-now-btn" onclick="triggerRoundNow()">ราวนด์เลย! 🏃</button>
+    </div>
   </div>
 
   <div id="view-ward">
@@ -808,6 +828,48 @@ if(localStorage.getItem('wq_theme')==='light'){
   document.getElementById('theme-btn').textContent='🌙';
 }
 document.getElementById('date-label').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
+
+// ── Round clock ───────────────────────────────────────────────
+let roundTime=localStorage.getItem('wq_round_time')||'';
+let roundFiredKey='';
+const roundInput=document.getElementById('round-time-input');
+if(roundInput&&roundTime)roundInput.value=roundTime;
+if(roundInput)roundInput.addEventListener('change',e=>{
+  roundTime=e.target.value;
+  localStorage.setItem('wq_round_time',roundTime);
+});
+
+function updateClock(){
+  const now=new Date();
+  const hh=String(now.getHours()).padStart(2,'0');
+  const mm=String(now.getMinutes()).padStart(2,'0');
+  const el=document.getElementById('digital-clock');
+  if(el)el.textContent=`${hh}:${mm}`;
+  if(roundTime&&`${hh}:${mm}`===roundTime){
+    const key=`${roundTime}-${now.toDateString()}`;
+    if(roundFiredKey!==key){
+      roundFiredKey=key;
+      triggerRoundNotify(roundTime);
+    }
+  }
+}
+setInterval(updateClock,1000);
+updateClock();
+
+async function triggerRoundNotify(time){
+  await fetch('https://clvqfnhikaedtomvusxy.supabase.co/functions/v1/line-notify',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({type:'ROUND',table:'system',old_record:{time}})
+  });
+}
+
+function triggerRoundNow(){
+  const now=new Date();
+  const hh=String(now.getHours()).padStart(2,'0');
+  const mm=String(now.getMinutes()).padStart(2,'0');
+  triggerRoundNotify(`${hh}:${mm}`);
+}
 const _initWard=localStorage.getItem('wq_active_ward')||'a';
 if(_initWard!=='a')selectMenuBtn(_initWard);
 renderAdmitForm();
