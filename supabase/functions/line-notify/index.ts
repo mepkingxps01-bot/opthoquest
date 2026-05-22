@@ -6,19 +6,22 @@ const LINE_GROUP_ID = Deno.env.get("LINE_GROUP_ID")!;
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
 
 async function linePush(text: string) {
-  const res = await fetch("https://api.line.me/v2/bot/message/push", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`,
-    },
-    body: JSON.stringify({
-      to: LINE_GROUP_ID,
-      messages: [{ type: "text", text }],
-    }),
-  });
-  const json = await res.json();
-  console.log("LINE push result:", JSON.stringify(json));
+  const groupIds = LINE_GROUP_ID.split(',').map(id => id.trim()).filter(Boolean);
+  for (const groupId of groupIds) {
+    const res = await fetch("https://api.line.me/v2/bot/message/push", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`,
+      },
+      body: JSON.stringify({
+        to: groupId,
+        messages: [{ type: "text", text }],
+      }),
+    });
+    const json = await res.json();
+    console.log(`LINE push to ${groupId}:`, JSON.stringify(json));
+  }
 }
 
 async function askClaude(prompt: string): Promise<string> {
