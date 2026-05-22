@@ -74,6 +74,7 @@ async function askClaude(userMessage: string, wardData: { roundTime: string | nu
 - "หิวข้าวมากกก แต่โอเค เดี๋ยวดูให้ 💢"
 
 ห้ามใช้ ** หรือ markdown ใดๆ เด็ดขาด LINE มันไม่รองรับ
+ใช้ emoji ได้ปกติ เช่น 🛏️ 📋 ✅ ❌ 😩 💢 — emoji ไม่ใช่ markdown
 ตอบสั้นๆ กระชับ ไม่เยิ่นเย้อ
 
 ถ้าถามเฉพาะสาย เช่น "งานสาย A" หรือ "สาย B" ให้แสดงเฉพาะ ward นั้นเท่านั้น ห้ามแสดง ward อื่น
