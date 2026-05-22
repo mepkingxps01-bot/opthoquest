@@ -73,6 +73,7 @@ serve(async (req) => {
 
     if (type === "ROUND") {
       const time = old_record?.time ?? "??:??";
+      const ward = (old_record?.ward ?? "a").toLowerCase();
       const supabase = createClient(
         Deno.env.get("SUPABASE_URL")!,
         Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
@@ -81,20 +82,20 @@ serve(async (req) => {
       const { data: tasks } = await supabase.from("tasks").select("*").order("created_at");
 
       const wardEmojis: Record<string, string> = { a:"🔵", b:"🟢", c:"🟡", d:"🔴" };
-      const wardOrder = ["a","b","c","d"];
+      const e = wardEmojis[ward] ?? "🏥";
 
-      let msg = `🕐 เวลาราวน์ : ${time}\n\n`;
+      // Only patients in this specific ward (ward section = admitted)
+      const wardPts = (patients ?? []).filter((p: any) =>
+        p.section !== "nonward" && (p.ward ?? "a").toLowerCase() === ward
+      );
 
-      const wardPts = (patients ?? []).filter((p: any) => p.section !== "nonward");
-      let hasAnyWard = false;
+      let msg = `${e} สาย ${ward.toUpperCase()} ${e}\n`;
+      msg += `🕐 เวลาราวน์ : ${time}\n\n`;
 
-      for (const ward of wardOrder) {
-        const pts = wardPts.filter((p: any) => (p.ward ?? "a").toLowerCase() === ward);
-        if (pts.length === 0) continue;
-        hasAnyWard = true;
-        const e = wardEmojis[ward];
-        msg += `${e} สาย ${ward.toUpperCase()} ${e}\n`;
-        pts.forEach((p: any, i: number) => {
+      if (wardPts.length === 0) {
+        msg += `ไม่มีคนไข้ admit เจ้าค่ะ\n\n`;
+      } else {
+        wardPts.forEach((p: any, i: number) => {
           const pending = (tasks ?? []).filter((t: any) => t.patient_id === p.id && !t.done);
           msg += `${i + 1}. ${p.name}`;
           msg += pending.length > 0 ? ` (${pending.length} งานค้าง)\n` : ` ✅\n`;
@@ -102,12 +103,13 @@ serve(async (req) => {
         msg += `\n`;
       }
 
-      if (!hasAnyWard) msg += `ไม่มีคนไข้ใน ward เจ้าค่ะ\n\n`;
-
       msg += `━━━━━━━━━━━━━━━━━━━━\n\n`;
       msg += `📋 งานที่เหลือค้างในสาย\n`;
 
-      const nonWardPts = (patients ?? []).filter((p: any) => p.section === "nonward");
+      // Non-ward patients for this ward only
+      const nonWardPts = (patients ?? []).filter((p: any) =>
+        p.section === "nonward" && (p.ward ?? "a").toLowerCase() === ward
+      );
       const nonWardWithTasks = nonWardPts.filter((p: any) =>
         (tasks ?? []).some((t: any) => t.patient_id === p.id && !t.done)
       );
