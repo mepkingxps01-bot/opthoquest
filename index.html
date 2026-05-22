@@ -656,16 +656,23 @@ async function resetWardXP(){
 
 async function loadAll(){
   setSyncDot('syncing');
-  const [pRes, tRes, xpRes, logRes] = await Promise.all([
+  const [pRes, tRes, xpRes, logRes, settingRes] = await Promise.all([
     sb.from('patients').select('*').order('created_at'),
     sb.from('tasks').select('*').order('created_at'),
     sb.from('xp_data').select('*').eq('id',1).single(),
     sb.from('xp_log').select('*').order('created_at',{ascending:false}).limit(60),
+    sb.from('settings').select('value').eq('key','round_time').single(),
   ]);
   let pts = pRes.data||[];
   const tks = tRes.data||[];
   xpTotal = xpRes.data?.total||0;
   xpLog = (logRes.data||[]).map(r=>({xp:r.xp,reason:r.reason,time:r.time}));
+  const rtVal = settingRes.data?.value||'';
+  if(rtVal){
+    localStorage.setItem('wq_round_time',rtVal);
+    const inp=document.getElementById('round-time-input');
+    if(inp&&document.activeElement!==inp)inp.value=rtVal;
+  }
   if(xpTotal>0 && Object.values(xpByWard).every(v=>v===0)){
     xpByWard['a']=xpTotal;saveXpByWard();
   }
@@ -799,6 +806,7 @@ function setupRealtime(){
     .on('postgres_changes',{event:'*',schema:'public',table:'tasks'},()=>loadAll())
     .on('postgres_changes',{event:'*',schema:'public',table:'xp_data'},()=>loadAll())
     .on('postgres_changes',{event:'*',schema:'public',table:'xp_log'},()=>loadAll())
+    .on('postgres_changes',{event:'*',schema:'public',table:'settings'},()=>loadAll())
     .subscribe(status=>{
       if(status==='SUBSCRIBED')setSyncDot('online');
       else setSyncDot('syncing');
