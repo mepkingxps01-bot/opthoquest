@@ -101,8 +101,6 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .round-label{font-size:11px;font-weight:700;color:var(--purple);letter-spacing:.06em;white-space:nowrap;}
 .round-time-input{background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'Syne',sans-serif;font-size:15px;font-weight:700;padding:5px 8px;outline:none;width:95px;text-align:center;}
 .round-time-input:focus{border-color:var(--purple);}
-.round-now-btn{background:var(--purple-dim);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--purple);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;padding:7px 12px;cursor:pointer;white-space:nowrap;margin-left:auto;}
-.round-now-btn:hover{background:rgba(139,124,255,.22);}
 .tab{flex:1;padding:9px 4px;border-radius:var(--radius-sm);border:0.5px solid var(--tab-border);background:transparent;color:var(--tab-color);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:5px;}
 .tab.active{background:var(--tab-active-bg);border-color:var(--tab-active-border);color:var(--text);font-weight:600;}
 .tab:hover:not(.active){background:var(--tab-hover-bg);color:var(--tab-hover-color);}
@@ -270,7 +268,6 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
   <div class="round-bar">
     <span class="round-label">⏰ เวลาราวนด์ :</span>
     <input type="time" id="round-time-input" class="round-time-input" />
-    <button class="round-now-btn" onclick="triggerRoundNow()">แจ้งราวนด์ 🏃</button>
   </div>
 
   <div id="view-ward">
@@ -828,16 +825,6 @@ if(_roundInput&&_savedRoundTime)_roundInput.value=_savedRoundTime;
 if(_roundInput)_roundInput.addEventListener('change',e=>{
   localStorage.setItem('wq_round_time',e.target.value);
 });
-function triggerRoundNow(){
-  const inp=document.getElementById('round-time-input');
-  const time=inp?inp.value:'';
-  if(!time){alert('กรุณาตั้งเวลาราวนด์ก่อนเจ้าค่ะ');return;}
-  fetch('https://clvqfnhikaedtomvusxy.supabase.co/functions/v1/line-notify',{
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({type:'ROUND',table:'system',old_record:{time}})
-  });
-}
 
 const _initWard=localStorage.getItem('wq_active_ward')||'a';
 if(_initWard!=='a')selectMenuBtn(_initWard);
