@@ -71,6 +71,60 @@ serve(async (req) => {
       await linePush(`${emoji} งานสาย ${ward.toUpperCase()} ${emoji}\n\n${name}\n• discharge แล้วเจ้าค่ะ ✅`);
     }
 
+    if (type === "ROUND") {
+      const time = old_record?.time ?? "??:??";
+      const supabase = createClient(
+        Deno.env.get("SUPABASE_URL")!,
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      );
+      const { data: patients } = await supabase.from("patients").select("*").order("created_at");
+      const { data: tasks } = await supabase.from("tasks").select("*").order("created_at");
+
+      const wardEmojis: Record<string, string> = { a:"🔵", b:"🟢", c:"🟡", d:"🔴" };
+      const wardOrder = ["a","b","c","d"];
+
+      let msg = `🕐 เวลาราวน์ : ${time}\n\n`;
+
+      const wardPts = (patients ?? []).filter((p: any) => p.section !== "nonward");
+      let hasAnyWard = false;
+
+      for (const ward of wardOrder) {
+        const pts = wardPts.filter((p: any) => (p.ward ?? "a").toLowerCase() === ward);
+        if (pts.length === 0) continue;
+        hasAnyWard = true;
+        const e = wardEmojis[ward];
+        msg += `${e} สาย ${ward.toUpperCase()} ${e}\n`;
+        pts.forEach((p: any, i: number) => {
+          const pending = (tasks ?? []).filter((t: any) => t.patient_id === p.id && !t.done);
+          msg += `${i + 1}. ${p.name}`;
+          msg += pending.length > 0 ? ` (${pending.length} งานค้าง)\n` : ` ✅\n`;
+        });
+        msg += `\n`;
+      }
+
+      if (!hasAnyWard) msg += `ไม่มีคนไข้ใน ward เจ้าค่ะ\n\n`;
+
+      msg += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+      msg += `📋 งานที่เหลือค้างในสาย\n`;
+
+      const nonWardPts = (patients ?? []).filter((p: any) => p.section === "nonward");
+      const nonWardWithTasks = nonWardPts.filter((p: any) =>
+        (tasks ?? []).some((t: any) => t.patient_id === p.id && !t.done)
+      );
+
+      if (nonWardWithTasks.length === 0) {
+        msg += `ไม่มีงานค้าง เจ้าค่ะ 🎉`;
+      } else {
+        nonWardWithTasks.forEach((p: any) => {
+          const pending = (tasks ?? []).filter((t: any) => t.patient_id === p.id && !t.done);
+          msg += `• ${p.name}\n`;
+          pending.forEach((t: any) => { msg += `  - ${t.text}\n`; });
+        });
+      }
+
+      await linePush(msg.trim());
+    }
+
     if (table === "patients" && type === "CANCEL_DISCHARGE") {
       const name = old_record?.name ?? "ไม่ทราบชื่อ";
       const ward = (old_record?.ward ?? "a").toLowerCase();
