@@ -61,6 +61,8 @@ serve(async (req) => {
 
     const { type, table, record, old_record } = payload;
 
+    const wardEmoji: Record<string, string> = { a:"🔵", b:"🟢", c:"🟡", d:"🔴" };
+
     if (table === "tasks" && type === "UPDATE") {
       const supabase = createClient(
         Deno.env.get("SUPABASE_URL")!,
@@ -68,27 +70,34 @@ serve(async (req) => {
       );
       const { data: patient } = await supabase
         .from("patients")
-        .select("name")
+        .select("name, ward")
         .eq("id", record.patient_id)
         .single();
       const patientName = patient?.name ?? "ไม่ทราบชื่อ";
+      const ward = (patient?.ward ?? "a").toLowerCase();
+      const emoji = wardEmoji[ward] ?? "🏥";
+      const wardLabel = `${emoji} งานสาย ${ward.toUpperCase()} ${emoji}`;
 
       if (record?.done === true && old_record?.done === false) {
-        await linePush(`${patientName}\n"${record.text}" เสร็จเรียบร้อยเจ้าค่ะ ✅`);
+        await linePush(`${wardLabel}\n\n${patientName}\n• "${record.text}" เสร็จเรียบร้อยเจ้าค่ะ ✅`);
       }
       if (record?.done === false && old_record?.done === true) {
-        await linePush(`${patientName}\n"${record.text}" มันยังไม่เสร็จ ❌`);
+        await linePush(`${wardLabel}\n\n${patientName}\n• "${record.text}" มันยังไม่เสร็จ ❌`);
       }
     }
 
     if (table === "patients" && type === "DELETE") {
       const name = old_record?.name ?? "ไม่ทราบชื่อ";
-      await linePush(`🏥 ผู้ป่วยชื่อ - ${name}\n• discharge แล้วเจ้าค่ะ ✅`);
+      const ward = (old_record?.ward ?? "a").toLowerCase();
+      const emoji = wardEmoji[ward] ?? "🏥";
+      await linePush(`${emoji} งานสาย ${ward.toUpperCase()} ${emoji}\n\n${name}\n• discharge แล้วเจ้าค่ะ ✅`);
     }
 
     if (table === "patients" && type === "CANCEL_DISCHARGE") {
       const name = old_record?.name ?? "ไม่ทราบชื่อ";
-      await linePush(`↩️ ผู้ป่วยชื่อ - ${name}\n• ยกเลิก discharge แล้วเจ้าค่ะ`);
+      const ward = (old_record?.ward ?? "a").toLowerCase();
+      const emoji = wardEmoji[ward] ?? "🏥";
+      await linePush(`${emoji} งานสาย ${ward.toUpperCase()} ${emoji}\n\n${name}\n• ยกเลิก discharge แล้วเจ้าค่ะ ↩️`);
     }
 
     return new Response("OK", { status: 200, headers: corsHeaders });
