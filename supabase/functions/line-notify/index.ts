@@ -42,7 +42,16 @@ async function askClaude(prompt: string): Promise<string> {
   return json.content?.[0]?.text ?? prompt;
 }
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
 serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
   try {
     const payload = await req.json();
     console.log("Webhook payload:", JSON.stringify(payload));
@@ -92,9 +101,9 @@ serve(async (req) => {
       await linePush(`🏥 ${message}`);
     }
 
-    return new Response("OK", { status: 200 });
+    return new Response("OK", { status: 200, headers: corsHeaders });
   } catch (err) {
     console.error("Error:", err);
-    return new Response("Error", { status: 500 });
+    return new Response("Error", { status: 500, headers: corsHeaders });
   }
 });

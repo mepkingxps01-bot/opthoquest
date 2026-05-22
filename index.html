@@ -452,7 +452,7 @@ function buildPatientCard(p,idx){
         ${isDc
           ?`<div style="font-size:12px;color:var(--green);flex:1;padding:2px 0;">🏁 Auto-remove in ${formatCountdown(dcRemaining)}</div>
             <button class="cancel-dc-btn" onclick="cancelDischarge('${p.id}')">✕ Cancel Discharge</button>`
-          :`<button class="discharge-btn" onclick="dischargePatient('${p.id}')">🏁 Discharge</button>
+          :`${sec==='ward'?`<button class="discharge-btn" onclick="dischargePatient('${p.id}')">🏁 Discharge</button>`:''}
             <button class="move-btn" onclick="toggleMovePicker('${p.id}')">↗ Move Ward</button>`
         }
       </div>
