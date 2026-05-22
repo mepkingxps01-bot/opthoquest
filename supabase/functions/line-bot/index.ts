@@ -41,6 +41,7 @@ async function fetchWardData(supabase: ReturnType<typeof createClient>) {
   return (patients ?? []).map((p: any) => ({
     name: p.name,
     ward: p.ward ?? "A",
+    section: p.section ?? "ward",
     tasks: (tasks ?? [])
       .filter((t: any) => t.patient_id === p.id)
       .map((t: any) => ({ text: t.text, done: t.done })),
@@ -71,6 +72,13 @@ async function askClaude(userMessage: string, wardData: any[]): Promise<string> 
 ตอบสั้นๆ กระชับ ไม่เยิ่นเย้อ
 
 ถ้าถามเฉพาะสาย เช่น "งานสาย A" หรือ "สาย B" ให้แสดงเฉพาะ ward นั้นเท่านั้น ห้ามแสดง ward อื่น
+
+ความหมายของ section:
+- section = "ward" คือคนไข้ที่ admit อยู่ใน ward ต้องราวนด์
+- section = "nonward" คือคนไข้นอก / งานสาย ที่ยังไม่ได้ admit ไม่ต้องราวนด์
+
+ถ้าถามว่า "มีคนไข้ admit ไหม" หรือ "คนไข้ใน ward" หรือ "ราวนด์" ให้ดูเฉพาะ section = "ward" เท่านั้น
+ถ้า section = "ward" ไม่มีใครเลย ให้ตอบว่าไม่มีคนไข้ admit
 
 แสดงข้อมูลแบบนี้เสมอ ชื่อคนไข้ขึ้นบรรทัดใหม่ แล้ว task อยู่ข้างล่าง:
 
