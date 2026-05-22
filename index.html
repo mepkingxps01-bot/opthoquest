@@ -828,7 +828,9 @@ const _roundInput=document.getElementById('round-time-input');
 const _savedRoundTime=localStorage.getItem('wq_round_time')||'';
 if(_roundInput&&_savedRoundTime)_roundInput.value=_savedRoundTime;
 if(_roundInput)_roundInput.addEventListener('change',e=>{
-  localStorage.setItem('wq_round_time',e.target.value);
+  const val=e.target.value;
+  localStorage.setItem('wq_round_time',val);
+  sb.from('settings').upsert({key:'round_time',value:val}).then(()=>{});
 });
 function triggerRoundNow(){
   const inp=document.getElementById('round-time-input');

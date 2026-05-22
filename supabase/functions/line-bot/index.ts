@@ -33,22 +33,27 @@ async function lineReply(replyToken: string, text: string) {
 }
 
 async function fetchWardData(supabase: ReturnType<typeof createClient>) {
-  const [{ data: patients }, { data: tasks }] = await Promise.all([
+  const [{ data: patients }, { data: tasks }, { data: setting }] = await Promise.all([
     supabase.from("patients").select("*").order("created_at"),
     supabase.from("tasks").select("*").order("created_at"),
+    supabase.from("settings").select("value").eq("key", "round_time").single(),
   ]);
 
-  return (patients ?? []).map((p: any) => ({
-    name: p.name,
-    ward: p.ward ?? "A",
-    section: p.section ?? "ward",
-    tasks: (tasks ?? [])
-      .filter((t: any) => t.patient_id === p.id)
-      .map((t: any) => ({ text: t.text, done: t.done })),
-  }));
+  return {
+    roundTime: setting?.value || null,
+    patients: (patients ?? []).map((p: any) => ({
+      name: p.name,
+      ward: p.ward ?? "A",
+      section: p.section ?? "ward",
+      tasks: (tasks ?? [])
+        .filter((t: any) => t.patient_id === p.id)
+        .map((t: any) => ({ text: t.text, done: t.done })),
+    })),
+  };
 }
 
-async function askClaude(userMessage: string, wardData: any[]): Promise<string> {
+async function askClaude(userMessage: string, wardData: { roundTime: string | null, patients: any[] }): Promise<string> {
+  const { roundTime, patients } = wardData;
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -88,8 +93,10 @@ async function askClaude(userMessage: string, wardData: any[]): Promise<string> 
 
 วีรพัฒน์ ✅
 
+เวลาราวนด์ที่ตั้งไว้: ${roundTime ? roundTime + " น." : "ยังไม่ได้ตั้ง"}
+
 ข้อมูล ward ตอนนี้:
-${JSON.stringify(wardData, null, 2)}`,
+${JSON.stringify(patients, null, 2)}`,
       messages: [{ role: "user", content: userMessage }],
     }),
   });
