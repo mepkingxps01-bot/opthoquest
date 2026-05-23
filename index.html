@@ -219,6 +219,10 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .handover-ta:focus{border-color:var(--purple);}
 .handover-ta::placeholder{color:var(--text3);}
 .handover-saving{font-size:10px;color:var(--text3);text-align:right;margin-top:5px;min-height:14px;transition:opacity .2s;}
+.handover-misc-btn{width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius);color:var(--text2);font-family:'Syne',sans-serif;font-size:14px;font-weight:700;padding:13px;cursor:pointer;letter-spacing:.06em;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:10px;}
+.handover-misc-btn:hover{background:var(--purple-dim);color:var(--text);}
+.handover-misc-btn:active{transform:scale(.98);}
+.handover-misc-label{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--teal);margin-bottom:8px;}
 </style>
 </head>
 <body>
@@ -289,6 +293,12 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
         <div class="handover-ward-label" id="handover-ward-label">Ward A — บันทึกส่งเวร</div>
         <textarea class="handover-ta" id="handover-ta" placeholder="พิมพ์บันทึกส่งเวร..." oninput="onHandoverInput(this)"></textarea>
         <div class="handover-saving" id="handover-saving"></div>
+      </div>
+      <button class="handover-misc-btn" onclick="toggleHandoverMisc()">📝 ส่งเวร Misc</button>
+      <div class="handover-area" id="handover-misc-area" style="display:none">
+        <div class="handover-misc-label">Misc — ทุก Ward</div>
+        <textarea class="handover-ta" id="handover-misc-ta" placeholder="พิมพ์บันทึก Misc..." oninput="onHandoverMiscInput(this)"></textarea>
+        <div class="handover-saving" id="handover-misc-saving"></div>
       </div>
     </div>
   </div>
@@ -367,6 +377,9 @@ let admitTargetWard = 'a';
 let handoverNotes = {a:'',b:'',c:'',d:''};
 let handoverOpen = false;
 let handoverSaveTimer = null;
+let handoverMiscNote = '';
+let handoverMiscOpen = false;
+let handoverMiscSaveTimer = null;
 let wardMap = JSON.parse(localStorage.getItem('wq_ward_map')||'{}');
 function saveWardMap(){localStorage.setItem('wq_ward_map',JSON.stringify(wardMap));}
 let xpByWard = JSON.parse(localStorage.getItem('wq_xp_ward')||'{"a":0,"b":0,"c":0,"d":0}');
@@ -718,6 +731,32 @@ async function saveHandoverNote(ward,text){
   if(saving){saving.textContent='✓ บันทึกแล้ว';setTimeout(()=>{if(saving)saving.textContent='';},1500);}
 }
 
+function toggleHandoverMisc(){
+  handoverMiscOpen=!handoverMiscOpen;
+  const area=document.getElementById('handover-misc-area');
+  if(area)area.style.display=handoverMiscOpen?'':'none';
+  if(handoverMiscOpen){
+    const ta=document.getElementById('handover-misc-ta');
+    if(ta&&document.activeElement!==ta){ta.value=handoverMiscNote;autoResize(ta);}
+    if(ta)setTimeout(()=>ta.focus(),50);
+  }
+}
+
+function onHandoverMiscInput(el){
+  autoResize(el);
+  handoverMiscNote=el.value;
+  const saving=document.getElementById('handover-misc-saving');
+  if(saving)saving.textContent='กำลังบันทึก...';
+  if(handoverMiscSaveTimer)clearTimeout(handoverMiscSaveTimer);
+  handoverMiscSaveTimer=setTimeout(()=>saveHandoverMiscNote(el.value),800);
+}
+
+async function saveHandoverMiscNote(text){
+  await sb.from('settings').upsert({key:'handover_misc',value:text});
+  const saving=document.getElementById('handover-misc-saving');
+  if(saving){saving.textContent='✓ บันทึกแล้ว';setTimeout(()=>{if(saving)saving.textContent='';},1500);}
+}
+
 // ── Supabase helpers ──────────────────────────────────────────
 
 async function loadAll(){
@@ -743,6 +782,11 @@ async function loadAll(){
   }
   ['a','b','c','d'].forEach(w=>{handoverNotes[w]=allSettings['handover_'+w]||'';});
   if(handoverOpen)renderHandover();
+  handoverMiscNote=allSettings['handover_misc']||'';
+  if(handoverMiscOpen){
+    const ta=document.getElementById('handover-misc-ta');
+    if(ta&&document.activeElement!==ta){ta.value=handoverMiscNote;autoResize(ta);}
+  }
   if(xpTotal>0 && Object.values(xpByWard).every(v=>v===0)){
     xpByWard['a']=xpTotal;saveXpByWard();
   }
