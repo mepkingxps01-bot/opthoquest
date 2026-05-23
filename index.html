@@ -208,6 +208,17 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 .pt-block,.task-item{animation:fadeIn .2s ease;}
 @media(max-width:480px){.app{max-width:100%;}.topbar{padding-top:24px;}}
+
+.handover-section{margin-top:18px;border-top:0.5px solid var(--border);padding-top:16px;}
+.handover-btn{width:100%;background:linear-gradient(135deg,var(--purple2),var(--teal));border:none;border-radius:var(--radius);color:#fff;font-family:'Syne',sans-serif;font-size:17px;font-weight:800;padding:16px;cursor:pointer;letter-spacing:.06em;transition:opacity .15s;display:flex;align-items:center;justify-content:center;gap:8px;}
+.handover-btn:hover{opacity:.88;}
+.handover-btn:active{transform:scale(.98);}
+.handover-area{margin-top:12px;animation:fadeIn .2s ease;}
+.handover-ward-label{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--purple);margin-bottom:8px;}
+.handover-ta{width:100%;background:var(--card);border:0.5px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.7;padding:14px;outline:none;resize:none;overflow:hidden;min-height:110px;transition:border-color .15s;}
+.handover-ta:focus{border-color:var(--purple);}
+.handover-ta::placeholder{color:var(--text3);}
+.handover-saving{font-size:10px;color:var(--text3);text-align:right;margin-top:5px;min-height:14px;transition:opacity .2s;}
 </style>
 </head>
 <body>
@@ -272,6 +283,14 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 
   <div id="view-ward">
     <div id="ward-list"></div>
+    <div class="handover-section">
+      <button class="handover-btn" onclick="toggleHandover()">📋 ส่งเวร</button>
+      <div class="handover-area" id="handover-area" style="display:none">
+        <div class="handover-ward-label" id="handover-ward-label">Ward A — บันทึกส่งเวร</div>
+        <textarea class="handover-ta" id="handover-ta" placeholder="พิมพ์บันทึกส่งเวร..." oninput="onHandoverInput(this)"></textarea>
+        <div class="handover-saving" id="handover-saving"></div>
+      </div>
+    </div>
   </div>
 
   <div id="view-admit" style="display:none">
@@ -345,6 +364,9 @@ let admitCustomTasks = [];
 let admitDefaultSel = new Set(DEFAULT_ADMIT_TASKS.map((_,i)=>i));
 let activeWard = 'a';
 let admitTargetWard = 'a';
+let handoverNotes = {a:'',b:'',c:'',d:''};
+let handoverOpen = false;
+let handoverSaveTimer = null;
 let wardMap = JSON.parse(localStorage.getItem('wq_ward_map')||'{}');
 function saveWardMap(){localStorage.setItem('wq_ward_map',JSON.stringify(wardMap));}
 let xpByWard = JSON.parse(localStorage.getItem('wq_xp_ward')||'{"a":0,"b":0,"c":0,"d":0}');
@@ -619,7 +641,8 @@ function selectMenuBtn(btn){
   ['a','b','c','d'].forEach(b=>{
     document.getElementById('menu-btn-'+b).className='menu-btn'+(b===btn?' active':'');
   });
-renderXP();renderSummary();renderWard();
+  renderXP();renderSummary();renderWard();
+  if(handoverOpen)renderHandover();
 }
 function setAdmitWard(btn){
   admitTargetWard=btn;
@@ -652,6 +675,49 @@ async function resetWardXP(){
   renderXP();renderSummary();
 }
 
+// ── Handover helpers ──────────────────────────────────────────
+
+function autoResize(el){
+  el.style.height='auto';
+  el.style.height=el.scrollHeight+'px';
+}
+
+function renderHandover(){
+  const ta=document.getElementById('handover-ta');
+  const lbl=document.getElementById('handover-ward-label');
+  if(ta&&document.activeElement!==ta){
+    ta.value=handoverNotes[activeWard]||'';
+    autoResize(ta);
+  }
+  if(lbl)lbl.textContent='Ward '+activeWard.toUpperCase()+' — บันทึกส่งเวร';
+}
+
+function toggleHandover(){
+  handoverOpen=!handoverOpen;
+  const area=document.getElementById('handover-area');
+  if(area)area.style.display=handoverOpen?'':'none';
+  if(handoverOpen){
+    renderHandover();
+    const ta=document.getElementById('handover-ta');
+    if(ta)setTimeout(()=>ta.focus(),50);
+  }
+}
+
+function onHandoverInput(el){
+  autoResize(el);
+  handoverNotes[activeWard]=el.value;
+  const saving=document.getElementById('handover-saving');
+  if(saving)saving.textContent='กำลังบันทึก...';
+  if(handoverSaveTimer)clearTimeout(handoverSaveTimer);
+  handoverSaveTimer=setTimeout(()=>saveHandoverNote(activeWard,el.value),800);
+}
+
+async function saveHandoverNote(ward,text){
+  await sb.from('settings').upsert({key:'handover_'+ward,value:text});
+  const saving=document.getElementById('handover-saving');
+  if(saving){saving.textContent='✓ บันทึกแล้ว';setTimeout(()=>{if(saving)saving.textContent='';},1500);}
+}
+
 // ── Supabase helpers ──────────────────────────────────────────
 
 async function loadAll(){
@@ -661,18 +727,22 @@ async function loadAll(){
     sb.from('tasks').select('*').order('created_at'),
     sb.from('xp_data').select('*').eq('id',1).single(),
     sb.from('xp_log').select('*').order('created_at',{ascending:false}).limit(60),
-    sb.from('settings').select('value').eq('key','round_time').single(),
+    sb.from('settings').select('*'),
   ]);
   let pts = pRes.data||[];
   const tks = tRes.data||[];
   xpTotal = xpRes.data?.total||0;
   xpLog = (logRes.data||[]).map(r=>({xp:r.xp,reason:r.reason,time:r.time}));
-  const rtVal = settingRes.data?.value||'';
+  const allSettings={};
+  (settingRes.data||[]).forEach(r=>{allSettings[r.key]=r.value;});
+  const rtVal = allSettings['round_time']||'';
   if(rtVal){
     localStorage.setItem('wq_round_time',rtVal);
     const inp=document.getElementById('round-time-input');
     if(inp&&document.activeElement!==inp)inp.value=rtVal;
   }
+  ['a','b','c','d'].forEach(w=>{handoverNotes[w]=allSettings['handover_'+w]||'';});
+  if(handoverOpen)renderHandover();
   if(xpTotal>0 && Object.values(xpByWard).every(v=>v===0)){
     xpByWard['a']=xpTotal;saveXpByWard();
   }
