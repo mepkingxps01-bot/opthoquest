@@ -43,7 +43,7 @@ body.light{
 body.light::before{background:radial-gradient(ellipse,rgba(92,78,224,0.07) 0%,transparent 70%)!important;}
 html,body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;-webkit-font-smoothing:antialiased;min-height:100vh;}
 body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(-50%);width:600px;height:400px;background:radial-gradient(ellipse,rgba(107,90,205,0.18) 0%,transparent 70%);pointer-events:none;z-index:0;}
-.app{max-width:440px;margin:0 auto;padding:0 16px 100px;position:relative;z-index:1;}
+.app{max-width:440px;margin:0 auto;padding:0 16px 120px;position:relative;z-index:1;}
 .topbar{padding:36px 0 0;display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;}
 .app-eyebrow{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--purple);margin-bottom:4px;}
 .app-title{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;color:var(--text);line-height:1.1;}
@@ -202,8 +202,21 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}  50%{transform:rotate(180deg) scale(1.1);}}
 .loading-text{font-family:'Syne',sans-serif;font-size:13px;color:var(--text3);letter-spacing:.1em;}
 
-.bottom-bar{position:fixed;bottom:0;left:0;right:0;height:34px;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:10;}
-.home-indicator{width:120px;height:4px;background:var(--indicator);border-radius:99px;}
+.bottom-bar{position:fixed;bottom:0;left:0;right:0;height:54px;background:var(--bg);border-top:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:10;}
+.home-indicator{width:80px;height:4px;background:var(--indicator);border-radius:99px;}
+.handover-btn{background:var(--teal);border:none;border-radius:var(--radius-sm);color:#fff;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;padding:8px 16px;cursor:pointer;letter-spacing:.04em;transition:opacity .15s;}
+.handover-btn:hover{opacity:.85;}
+.handover-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center;z-index:1500;backdrop-filter:blur(4px);}
+.handover-overlay.show{display:flex;}
+.handover-box{background:var(--bg2);border:0.5px solid var(--border2);border-radius:18px 18px 0 0;width:100%;max-width:440px;padding:20px 20px 36px;}
+.handover-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.handover-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--teal);letter-spacing:.05em;}
+.handover-close{background:none;border:none;font-size:20px;color:var(--text3);cursor:pointer;line-height:1;padding:2px 6px;}
+.handover-textarea{width:100%;min-height:200px;background:var(--card);border:0.5px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.6;padding:12px 14px;outline:none;resize:vertical;}
+.handover-textarea:focus{border-color:var(--teal);}
+.handover-save{width:100%;margin-top:10px;background:var(--teal);border:none;border-radius:var(--radius-sm);color:#fff;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;padding:11px;cursor:pointer;transition:opacity .15s;}
+.handover-save:hover{opacity:.85;}
+.handover-saved{font-size:11px;color:var(--teal);text-align:center;margin-top:6px;height:14px;}
 
 @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 .pt-block,.task-item{animation:fadeIn .2s ease;}
@@ -311,7 +324,22 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
   </div>
 </div>
 
-<div class="bottom-bar"><div class="home-indicator"></div></div>
+<div class="bottom-bar">
+  <div class="home-indicator"></div>
+  <button class="handover-btn" onclick="openHandover()">📋 ส่งเวร</button>
+</div>
+
+<div class="handover-overlay" id="handover-overlay" onclick="if(event.target===this)closeHandover()">
+  <div class="handover-box">
+    <div class="handover-top">
+      <span class="handover-title">📋 ส่งเวร</span>
+      <button class="handover-close" onclick="closeHandover()">✕</button>
+    </div>
+    <textarea class="handover-textarea" id="handover-text" placeholder="เขียนสรุปส่งเวรที่นี่..."></textarea>
+    <button class="handover-save" onclick="saveHandover()">💾 บันทึก</button>
+    <div class="handover-saved" id="handover-saved"></div>
+  </div>
+</div>
 <div class="xp-toast" id="xp-toast">+1 XP</div>
 <div class="lvlup-overlay" id="lvlup-overlay">
   <div class="lvlup-box">
@@ -840,6 +868,28 @@ const _initWard=localStorage.getItem('wq_active_ward')||'a';
 if(_initWard!=='a')selectMenuBtn(_initWard);
 renderAdmitForm();
 loadAll().then(()=>setupRealtime());
+
+// ── ส่งเวร ────────────────────────────────────────────────────
+function openHandover(){
+  document.getElementById('handover-overlay').classList.add('show');
+  document.getElementById('handover-saved').textContent='';
+  document.getElementById('handover-text').focus();
+}
+function closeHandover(){
+  document.getElementById('handover-overlay').classList.remove('show');
+}
+async function saveHandover(){
+  const text=document.getElementById('handover-text').value;
+  await sb.from('settings').upsert({key:'handover_text',value:text});
+  const el=document.getElementById('handover-saved');
+  el.textContent='✅ บันทึกแล้ว';
+  setTimeout(()=>el.textContent='',2000);
+}
+async function loadHandover(){
+  const {data}=await sb.from('settings').select('value').eq('key','handover_text').single();
+  if(data?.value)document.getElementById('handover-text').value=data.value;
+}
+loadHandover();
 </script>
 </body>
 </html>
