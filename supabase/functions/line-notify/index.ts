@@ -2,25 +2,33 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const LINE_CHANNEL_ACCESS_TOKEN = Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN")!;
-const LINE_GROUP_ID = Deno.env.get("LINE_GROUP_ID")!;
 
-async function linePush(text: string) {
-  const groupIds = LINE_GROUP_ID.split(',').map(id => id.trim()).filter(Boolean);
-  for (const groupId of groupIds) {
-    const res = await fetch("https://api.line.me/v2/bot/message/push", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`,
-      },
-      body: JSON.stringify({
-        to: groupId,
-        messages: [{ type: "text", text }],
-      }),
-    });
-    const json = await res.json();
-    console.log(`LINE push to ${groupId}:`, JSON.stringify(json));
+const WARD_GROUP_IDS: Record<string, string> = {
+  a: Deno.env.get("LINE_GROUP_ID_A") ?? "",
+  b: Deno.env.get("LINE_GROUP_ID_B") ?? "",
+  c: Deno.env.get("LINE_GROUP_ID_C") ?? "",
+  d: Deno.env.get("LINE_GROUP_ID_D") ?? "",
+};
+
+async function linePush(text: string, ward: string) {
+  const groupId = WARD_GROUP_IDS[ward.toLowerCase()];
+  if (!groupId) {
+    console.warn(`No LINE group configured for ward: ${ward}`);
+    return;
   }
+  const res = await fetch("https://api.line.me/v2/bot/message/push", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${LINE_CHANNEL_ACCESS_TOKEN}`,
+    },
+    body: JSON.stringify({
+      to: groupId,
+      messages: [{ type: "text", text }],
+    }),
+  });
+  const json = await res.json();
+  console.log(`LINE push to ward ${ward.toUpperCase()} (${groupId}):`, JSON.stringify(json));
 }
 
 const corsHeaders = {
@@ -57,10 +65,10 @@ serve(async (req) => {
       const wardLabel = `${emoji} งานสาย ${ward.toUpperCase()} ${emoji}`;
 
       if (record?.done === true && old_record?.done === false) {
-        await linePush(`${wardLabel}\n\n${patientName}\n• "${record.text}" เสร็จเรียบร้อยเจ้าค่ะ ✅`);
+        await linePush(`${wardLabel}\n\n${patientName}\n• "${record.text}" เสร็จเรียบร้อยเจ้าค่ะ ✅`, ward);
       }
       if (record?.done === false && old_record?.done === true) {
-        await linePush(`${wardLabel}\n\n${patientName}\n• "${record.text}" มันยังไม่เสร็จ ❌`);
+        await linePush(`${wardLabel}\n\n${patientName}\n• "${record.text}" มันยังไม่เสร็จ ❌`, ward);
       }
     }
 
@@ -68,7 +76,7 @@ serve(async (req) => {
       const name = old_record?.name ?? "ไม่ทราบชื่อ";
       const ward = (old_record?.ward ?? "a").toLowerCase();
       const emoji = wardEmoji[ward] ?? "🏥";
-      await linePush(`${emoji} งานสาย ${ward.toUpperCase()} ${emoji}\n\n${name}\n• discharge แล้วเจ้าค่ะ ✅`);
+      await linePush(`${emoji} งานสาย ${ward.toUpperCase()} ${emoji}\n\n${name}\n• discharge แล้วเจ้าค่ะ ✅`, ward);
     }
 
     if (type === "ROUND") {
@@ -124,14 +132,14 @@ serve(async (req) => {
         });
       }
 
-      await linePush(msg.trim());
+      await linePush(msg.trim(), ward);
     }
 
     if (table === "patients" && type === "CANCEL_DISCHARGE") {
       const name = old_record?.name ?? "ไม่ทราบชื่อ";
       const ward = (old_record?.ward ?? "a").toLowerCase();
       const emoji = wardEmoji[ward] ?? "🏥";
-      await linePush(`${emoji} งานสาย ${ward.toUpperCase()} ${emoji}\n\n${name}\n• ยกเลิก discharge แล้วเจ้าค่ะ ↩️`);
+      await linePush(`${emoji} งานสาย ${ward.toUpperCase()} ${emoji}\n\n${name}\n• ยกเลิก discharge แล้วเจ้าค่ะ ↩️`, ward);
     }
 
     return new Response("OK", { status: 200, headers: corsHeaders });
