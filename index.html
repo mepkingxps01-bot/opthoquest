@@ -834,7 +834,10 @@ function setupRealtime(){
     .on('postgres_changes',{event:'*',schema:'public',table:'tasks'},()=>loadAll())
     .on('postgres_changes',{event:'*',schema:'public',table:'xp_data'},()=>loadAll())
     .on('postgres_changes',{event:'*',schema:'public',table:'xp_log'},()=>loadAll())
-    .on('postgres_changes',{event:'*',schema:'public',table:'settings'},()=>loadAll())
+    .on('postgres_changes',{event:'*',schema:'public',table:'settings'},()=>{
+      loadAll();
+      if(document.getElementById('handover-overlay').classList.contains('show'))loadHandover();
+    })
     .subscribe(status=>{
       if(status==='SUBSCRIBED')setSyncDot('online');
       else setSyncDot('syncing');
