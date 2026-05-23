@@ -202,21 +202,13 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}  50%{transform:rotate(180deg) scale(1.1);}}
 .loading-text{font-family:'Syne',sans-serif;font-size:13px;color:var(--text3);letter-spacing:.1em;}
 
-.bottom-bar{position:fixed;bottom:0;left:0;right:0;height:54px;background:var(--bg);border-top:0.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;z-index:10;}
-.home-indicator{width:80px;height:4px;background:var(--indicator);border-radius:99px;}
-.handover-btn{background:var(--teal);border:none;border-radius:var(--radius-sm);color:#fff;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;padding:8px 16px;cursor:pointer;letter-spacing:.04em;transition:opacity .15s;}
-.handover-btn:hover{opacity:.85;}
-.handover-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:flex-end;justify-content:center;z-index:1500;backdrop-filter:blur(4px);}
-.handover-overlay.show{display:flex;}
-.handover-box{background:var(--bg2);border:0.5px solid var(--border2);border-radius:18px 18px 0 0;width:100%;max-width:440px;padding:20px 20px 36px;}
-.handover-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-.handover-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:800;color:var(--teal);letter-spacing:.05em;}
-.handover-close{background:none;border:none;font-size:20px;color:var(--text3);cursor:pointer;line-height:1;padding:2px 6px;}
-.handover-textarea{width:100%;min-height:200px;background:var(--card);border:0.5px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.6;padding:12px 14px;outline:none;resize:vertical;}
+.bottom-bar{position:fixed;bottom:0;left:0;right:0;height:34px;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:10;}
+.home-indicator{width:120px;height:4px;background:var(--indicator);border-radius:99px;}
+.handover-section{background:var(--card);border:0.5px solid var(--border2);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;}
+.handover-section-label{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--teal);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
+.handover-status{font-size:10px;color:var(--text3);font-weight:400;letter-spacing:0;}
+.handover-textarea{width:100%;min-height:90px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.6;padding:10px 12px;outline:none;resize:vertical;}
 .handover-textarea:focus{border-color:var(--teal);}
-.handover-save{width:100%;margin-top:10px;background:var(--teal);border:none;border-radius:var(--radius-sm);color:#fff;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;padding:11px;cursor:pointer;transition:opacity .15s;}
-.handover-save:hover{opacity:.85;}
-.handover-saved{font-size:11px;color:var(--teal);text-align:center;margin-top:6px;height:14px;}
 
 @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 .pt-block,.task-item{animation:fadeIn .2s ease;}
@@ -322,24 +314,17 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
       <div id="log-list"></div>
     </div>
   </div>
-</div>
 
-<div class="bottom-bar">
-  <div class="home-indicator"></div>
-  <button class="handover-btn" onclick="openHandover()">📋 ส่งเวร</button>
-</div>
-
-<div class="handover-overlay" id="handover-overlay" onclick="if(event.target===this)closeHandover()">
-  <div class="handover-box">
-    <div class="handover-top">
-      <span class="handover-title" id="handover-title">📋 ส่งเวร</span>
-      <button class="handover-close" onclick="closeHandover()">✕</button>
+  <div class="handover-section">
+    <div class="handover-section-label">
+      <span id="handover-label">📋 ส่งเวร สาย A 🔵</span>
+      <span class="handover-status" id="handover-status"></span>
     </div>
     <textarea class="handover-textarea" id="handover-text" placeholder="เขียนสรุปส่งเวรที่นี่..."></textarea>
-    <button class="handover-save" onclick="saveHandover()">💾 บันทึก</button>
-    <div class="handover-saved" id="handover-saved"></div>
   </div>
 </div>
+
+<div class="bottom-bar"><div class="home-indicator"></div></div>
 <div class="xp-toast" id="xp-toast">+1 XP</div>
 <div class="lvlup-overlay" id="lvlup-overlay">
   <div class="lvlup-box">
@@ -647,6 +632,7 @@ function selectMenuBtn(btn){
   ['a','b','c','d'].forEach(b=>{
     document.getElementById('menu-btn-'+b).className='menu-btn'+(b===btn?' active':'');
   });
+  updateHandoverLabel();loadHandover();
 renderXP();renderSummary();renderWard();
 }
 function setAdmitWard(btn){
@@ -836,7 +822,7 @@ function setupRealtime(){
     .on('postgres_changes',{event:'*',schema:'public',table:'xp_log'},()=>loadAll())
     .on('postgres_changes',{event:'*',schema:'public',table:'settings'},()=>{
       loadAll();
-      if(document.getElementById('handover-overlay').classList.contains('show'))loadHandover();
+      loadHandover();
     })
     .subscribe(status=>{
       if(status==='SUBSCRIBED')setSyncDot('online');
@@ -873,29 +859,35 @@ renderAdmitForm();
 loadAll().then(()=>setupRealtime());
 
 // ── ส่งเวร ────────────────────────────────────────────────────
-const wardEmoji={'a':'🔵','b':'🟢','c':'🟡','d':'🔴'};
-function openHandover(){
-  const e=wardEmoji[activeWard]||'🏥';
-  document.getElementById('handover-title').textContent=`📋 ส่งเวร สาย ${activeWard.toUpperCase()} ${e}`;
-  document.getElementById('handover-saved').textContent='';
-  loadHandover();
-  document.getElementById('handover-overlay').classList.add('show');
+const _wardEmoji={'a':'🔵','b':'🟢','c':'🟡','d':'🔴'};
+let _handoverTimer=null;
+
+function updateHandoverLabel(){
+  const e=_wardEmoji[activeWard]||'🏥';
+  const el=document.getElementById('handover-label');
+  if(el)el.textContent=`📋 ส่งเวร สาย ${activeWard.toUpperCase()} ${e}`;
 }
-function closeHandover(){
-  document.getElementById('handover-overlay').classList.remove('show');
-}
-async function saveHandover(){
-  const text=document.getElementById('handover-text').value;
-  await sb.from('settings').upsert({key:'handover_'+activeWard,value:text});
-  const el=document.getElementById('handover-saved');
-  el.textContent='✅ บันทึกแล้ว';
-  setTimeout(()=>el.textContent='',2000);
-}
+
 async function loadHandover(){
   const {data}=await sb.from('settings').select('value').eq('key','handover_'+activeWard).single();
-  document.getElementById('handover-text').value=data?.value||'';
-  setTimeout(()=>document.getElementById('handover-text').focus(),100);
+  const ta=document.getElementById('handover-text');
+  if(ta&&document.activeElement!==ta)ta.value=data?.value||'';
 }
+
+function onHandoverInput(){
+  const st=document.getElementById('handover-status');
+  if(st)st.textContent='กำลังพิมพ์...';
+  clearTimeout(_handoverTimer);
+  _handoverTimer=setTimeout(async()=>{
+    const text=document.getElementById('handover-text').value;
+    await sb.from('settings').upsert({key:'handover_'+activeWard,value:text});
+    if(st){st.textContent='✅ บันทึกแล้ว';setTimeout(()=>st.textContent='',2000);}
+  },800);
+}
+
+document.getElementById('handover-text').addEventListener('input',onHandoverInput);
+updateHandoverLabel();
+loadHandover();
 </script>
 </body>
 </html>
