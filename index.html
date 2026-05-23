@@ -207,7 +207,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .handover-section{background:var(--card);border:0.5px solid var(--border2);border-radius:var(--radius);padding:14px 16px;margin-bottom:14px;}
 .handover-section-label{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--teal);letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
 .handover-status{font-size:10px;color:var(--text3);font-weight:400;letter-spacing:0;}
-.handover-textarea{width:100%;min-height:90px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.6;padding:10px 12px;outline:none;resize:vertical;}
+.handover-textarea{width:100%;min-height:60px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.6;padding:10px 12px;outline:none;resize:none;overflow:hidden;}
 .handover-textarea:focus{border-color:var(--teal);}
 
 @keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
@@ -871,10 +871,18 @@ function updateHandoverLabel(){
 async function loadHandover(){
   const {data}=await sb.from('settings').select('value').eq('key','handover_'+activeWard).single();
   const ta=document.getElementById('handover-text');
-  if(ta&&document.activeElement!==ta)ta.value=data?.value||'';
+  if(ta&&document.activeElement!==ta){ta.value=data?.value||'';resizeHandover();}
+}
+
+function resizeHandover(){
+  const ta=document.getElementById('handover-text');
+  if(!ta)return;
+  ta.style.height='auto';
+  ta.style.height=ta.scrollHeight+'px';
 }
 
 function onHandoverInput(){
+  resizeHandover();
   const st=document.getElementById('handover-status');
   if(st)st.textContent='กำลังพิมพ์...';
   clearTimeout(_handoverTimer);
