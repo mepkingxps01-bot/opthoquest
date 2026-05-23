@@ -670,9 +670,6 @@ async function resetWardXP(){
 
 async function loadAll(){
   setSyncDot('syncing');
-  const hideLoading=()=>document.getElementById('loading-screen').classList.add('hidden');
-  const fallback=setTimeout(hideLoading,6000);
-  try{
   const [pRes, tRes, xpRes, logRes, settingRes] = await Promise.all([
     sb.from('patients').select('*').order('created_at'),
     sb.from('tasks').select('*').order('created_at'),
@@ -714,8 +711,7 @@ async function loadAll(){
   if(secUpdated)saveSectionMap();
   setSyncDot('online');
   renderXP();renderSummary();renderWard();
-  clearTimeout(fallback);hideLoading();
-  }catch(e){console.error(e);clearTimeout(fallback);hideLoading();}
+  document.getElementById('loading-screen').classList.add('hidden');
 }
 
 async function awardXP(amount, reason, ward){
