@@ -33,16 +33,22 @@ async function lineReply(replyToken: string, text: string) {
 }
 
 async function fetchWardData(supabase: ReturnType<typeof createClient>) {
-  const [{ data: patients }, { data: tasks }, { data: setting }, { data: noRoundSetting }] = await Promise.all([
+  const [{ data: patients }, { data: tasks }, { data: setting }, { data: noRoundRows }] = await Promise.all([
     supabase.from("patients").select("*").order("created_at"),
     supabase.from("tasks").select("*").order("created_at"),
     supabase.from("settings").select("value").eq("key", "round_time").single(),
-    supabase.from("settings").select("value").eq("key", "no_round").single(),
+    supabase.from("settings").select("key,value").in("key", ["no_round_a","no_round_b","no_round_c","no_round_d"]),
   ]);
+
+  const noRoundByWard: Record<string, boolean> = { a: false, b: false, c: false, d: false };
+  (noRoundRows ?? []).forEach((r: any) => {
+    const w = r.key.replace("no_round_", "");
+    noRoundByWard[w] = r.value === "true";
+  });
 
   return {
     roundTime: setting?.value || null,
-    noRound: noRoundSetting?.value === "true",
+    noRoundByWard,
     patients: (patients ?? []).map((p: any) => ({
       name: p.name,
       ward: p.ward ?? "A",
@@ -54,8 +60,8 @@ async function fetchWardData(supabase: ReturnType<typeof createClient>) {
   };
 }
 
-async function askClaude(userMessage: string, wardData: { roundTime: string | null, noRound: boolean, patients: any[] }): Promise<string> {
-  const { roundTime, noRound, patients } = wardData;
+async function askClaude(userMessage: string, wardData: { roundTime: string | null, noRoundByWard: Record<string, boolean>, patients: any[] }): Promise<string> {
+  const { roundTime, noRoundByWard, patients } = wardData;
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -108,7 +114,11 @@ async function askClaude(userMessage: string, wardData: { roundTime: string | nu
 • นัด OR
 • DC summary
 
-เวลาราวนด์ที่ตั้งไว้: ${noRound ? "ไม่มีราวนด์" : (roundTime ? roundTime + " น." : "ยังไม่ได้ตั้ง")}
+สถานะราวนด์แต่ละสาย:
+- สาย A: ${noRoundByWard['a'] ? "ไม่มีราวนด์" : (roundTime ? roundTime + " น." : "ยังไม่ได้ตั้ง")}
+- สาย B: ${noRoundByWard['b'] ? "ไม่มีราวนด์" : (roundTime ? roundTime + " น." : "ยังไม่ได้ตั้ง")}
+- สาย C: ${noRoundByWard['c'] ? "ไม่มีราวนด์" : (roundTime ? roundTime + " น." : "ยังไม่ได้ตั้ง")}
+- สาย D: ${noRoundByWard['d'] ? "ไม่มีราวนด์" : (roundTime ? roundTime + " น." : "ยังไม่ได้ตั้ง")}
 
 ข้อมูล ward ตอนนี้:
 ${JSON.stringify(patients, null, 2)}`,

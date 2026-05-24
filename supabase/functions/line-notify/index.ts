@@ -88,7 +88,7 @@ serve(async (req) => {
       );
       const { data: patients } = await supabase.from("patients").select("*").order("created_at");
       const { data: tasks } = await supabase.from("tasks").select("*").order("created_at");
-      const { data: noRoundSetting } = await supabase.from("settings").select("value").eq("key", "no_round").single();
+      const { data: noRoundSetting } = await supabase.from("settings").select("value").eq("key", `no_round_${ward}`).single();
       const noRound = noRoundSetting?.value === "true";
 
       const wardEmojis: Record<string, string> = { a:"🔵", b:"🟢", c:"🟡", d:"🔴" };

@@ -662,6 +662,7 @@ function selectMenuBtn(btn){
   ['a','b','c','d'].forEach(b=>{
     document.getElementById('menu-btn-'+b).className='menu-btn'+(b===btn?' active':'');
   });
+  applyNoRound(localStorage.getItem('wq_no_round_'+btn)==='true');
   renderXP();renderSummary();renderWard();renderHandover();
 }
 function setAdmitWard(btn){
@@ -760,9 +761,11 @@ async function loadAll(){
     const inp=document.getElementById('round-time-input');
     if(inp&&document.activeElement!==inp)inp.value=rtVal;
   }
-  const nrVal = allSettings['no_round']==='true';
-  localStorage.setItem('wq_no_round', nrVal?'true':'false');
-  applyNoRound(nrVal);
+  ['a','b','c','d'].forEach(w=>{
+    const nrVal=allSettings['no_round_'+w]==='true';
+    localStorage.setItem('wq_no_round_'+w,nrVal?'true':'false');
+  });
+  applyNoRound(localStorage.getItem('wq_no_round_'+activeWard)==='true');
   ['a','b','c','d'].forEach(w=>{handoverNotes[w]=allSettings['handover_'+w]||'';});
   renderHandover();
   handoverMiscNote=allSettings['handover_misc']||'';
@@ -946,13 +949,13 @@ function applyNoRound(checked){
 }
 
 function onNoRoundChange(checked){
-  localStorage.setItem('wq_no_round',checked?'true':'false');
+  localStorage.setItem('wq_no_round_'+activeWard,checked?'true':'false');
   applyNoRound(checked);
-  sb.from('settings').upsert({key:'no_round',value:String(checked)}).then(()=>{});
+  sb.from('settings').upsert({key:'no_round_'+activeWard,value:String(checked)}).then(()=>{});
 }
 
 // restore no_round on page load
-applyNoRound(localStorage.getItem('wq_no_round')==='true');
+applyNoRound(localStorage.getItem('wq_no_round_'+(localStorage.getItem('wq_active_ward')||'a'))==='true');
 
 const _initWard=localStorage.getItem('wq_active_ward')||'a';
 if(_initWard!=='a')selectMenuBtn(_initWard);
