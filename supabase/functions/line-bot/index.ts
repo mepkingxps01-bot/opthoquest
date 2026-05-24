@@ -51,8 +51,12 @@ Return ONLY a raw JSON array, nothing else before or after it.` }
     }),
   });
   const json = await res.json();
-  console.log("parseORImage response:", JSON.stringify(json));
-  const raw = "[" + (json.content?.[0]?.text ?? "[]").trim();
+  const claudeText = json.content?.[0]?.text;
+  console.log("parseORImage HTTP status:", res.status);
+  console.log("parseORImage error:", json.error ? JSON.stringify(json.error) : "none");
+  console.log("parseORImage raw text:", claudeText ?? "(empty)");
+  if (!claudeText) return [];
+  const raw = "[" + claudeText.trim();
   try { return JSON.parse(raw); } catch {
     const m = raw.match(/\[[\s\S]*\]/);
     return m ? JSON.parse(m[0]) : [];

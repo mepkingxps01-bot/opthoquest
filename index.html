@@ -937,15 +937,22 @@ async function parseORSchedule(){
   document.getElementById('or-status').textContent='';
   document.getElementById('or-result').style.display='none';
   try{
+    document.getElementById('or-status').textContent=`📤 กำลังส่งรูป (${Math.round(orImageBase64.length*3/4/1024)}KB)...`;
     const res=await fetch('https://clvqfnhikaedtomvusxy.supabase.co/functions/v1/line-bot',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({type:'parse_or_image',image:orImageBase64,mediaType:orImageMediaType})
     });
+    if(!res.ok){
+      const errText=await res.text();
+      document.getElementById('or-status').textContent=`❌ HTTP ${res.status}: ${errText.slice(0,200)}`;
+      return;
+    }
     const data=await res.json();
+    if(data.error){document.getElementById('or-status').textContent='❌ '+data.error;return;}
     orParsedPatients=(data.patients||[]).map(p=>({...p,selected:true}));
     if(!orParsedPatients.length){
-      document.getElementById('or-status').textContent='ไม่พบรายชื่อผู้ป่วย ลองถ่ายรูปใหม่ให้ชัดขึ้น';
+      document.getElementById('or-status').textContent='ไม่พบรายชื่อผู้ป่วย (ลองอีกครั้ง หรือ Hard Refresh หน้าก่อน)';
     }else{
       renderORList();
       document.getElementById('or-result').style.display='';
