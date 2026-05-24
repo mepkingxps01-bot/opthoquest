@@ -916,6 +916,7 @@ function onORImageSelected(input){
       canvas.getContext('2d').drawImage(img,0,0,w,h);
       const dataUrl=canvas.toDataURL('image/jpeg',0.85);
       orImageBase64=dataUrl.split(',')[1];
+      orImageMediaType='image/jpeg';
       // Show preview
       const zone=document.getElementById('or-upload-zone');
       zone.className='or-upload-zone has-image';
