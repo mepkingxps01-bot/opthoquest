@@ -234,6 +234,25 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .handover-misc-btn:hover{background:var(--purple-dim);color:var(--text);}
 .handover-misc-btn:active{transform:scale(.98);}
 .handover-misc-label{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--teal);margin-bottom:8px;}
+.or-import-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
+.or-import-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--teal);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
+.or-ta{width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;line-height:1.6;padding:10px 12px;outline:none;resize:vertical;min-height:90px;transition:border-color .15s;box-sizing:border-box;}
+.or-ta:focus{border-color:var(--teal);}
+.or-ta::placeholder{color:var(--text3);}
+.or-parse-btn{width:100%;margin-top:8px;background:linear-gradient(135deg,var(--teal),#38b2a0);border:none;border-radius:var(--radius-sm);color:#fff;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;padding:10px;cursor:pointer;transition:opacity .15s;letter-spacing:.04em;}
+.or-parse-btn:hover{opacity:.88;}
+.or-parse-btn:disabled{opacity:.45;cursor:not-allowed;}
+.or-patient-list{margin-top:12px;display:flex;flex-direction:column;gap:6px;}
+.or-patient-row{display:flex;align-items:flex-start;gap:10px;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;}
+.or-pt-cb{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--border2);background:transparent;cursor:pointer;appearance:none;-webkit-appearance:none;flex-shrink:0;margin-top:2px;transition:all .15s;}
+.or-pt-cb:checked{background:var(--teal);border-color:var(--teal);}
+.or-pt-cb:checked::after{content:'✓';color:#fff;font-size:11px;line-height:1;display:block;text-align:center;}
+.or-pt-name{font-size:12px;color:var(--text);line-height:1.5;}
+.or-pt-meta{font-size:11px;color:var(--text3);margin-top:2px;}
+.or-admit-all-btn{width:100%;margin-top:10px;background:linear-gradient(135deg,var(--purple2),var(--purple));border:none;border-radius:var(--radius-sm);color:white;font-family:'Syne',sans-serif;font-size:14px;font-weight:700;padding:13px;cursor:pointer;transition:opacity .15s;letter-spacing:.04em;}
+.or-admit-all-btn:hover{opacity:.88;}
+.or-admit-all-btn:disabled{opacity:.45;cursor:not-allowed;}
+.or-status{font-size:11px;color:var(--text3);text-align:center;margin-top:6px;min-height:16px;}
 </style>
 </head>
 <body>
@@ -314,6 +333,19 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
   </div>
 
   <div id="view-admit" style="display:none">
+
+    <!-- OR Schedule Import -->
+    <div class="or-import-card">
+      <div class="or-import-title">🗒️ นำเข้าจาก OR Schedule</div>
+      <textarea id="or-ta" class="or-ta" placeholder="วาง OR Schedule ที่นี่ (copy จากระบบ หรือพิมพ์ชื่อ HN และ Op)..."></textarea>
+      <button class="or-parse-btn" id="or-parse-btn" onclick="parseORSchedule()">🔍 ดึงข้อมูลผู้ป่วย</button>
+      <div id="or-result" style="display:none">
+        <div class="or-patient-list" id="or-patient-list"></div>
+        <button class="or-admit-all-btn" id="or-admit-all-btn" onclick="admitAllFromOR()">🏥 Admit ทั้งหมด → Ward <span id="or-ward-label">A</span></button>
+      </div>
+      <div class="or-status" id="or-status"></div>
+    </div>
+
     <div class="admit-card">
       <div class="admit-ward-row">
         <div class="admit-section-label" style="margin:0"><span></span>Admit to ward</div>
@@ -673,6 +705,8 @@ function setAdmitWard(btn){
   });
   const ab=document.getElementById('admit-btn');
   if(ab&&!ab.disabled)ab.textContent='🏥 Admit to Ward '+btn.toUpperCase()+' →';
+  const wl=document.getElementById('or-ward-label');
+  if(wl)wl.textContent=btn.toUpperCase();
 }
 
 function switchTab(tab){
@@ -848,6 +882,79 @@ async function admitPatient(){
   admitDefaultSel=new Set(DEFAULT_ADMIT_TASKS.map((_,i)=>i));
   renderAdmitForm();
   await awardXP(1,'Admitted: '+name, admitTargetWard);
+  await loadAll();
+  selectMenuBtn(admitTargetWard);
+  switchTab('ward');
+}
+
+// ── OR Schedule Import ────────────────────────────────────────
+let orParsedPatients = [];
+
+async function parseORSchedule(){
+  const text=document.getElementById('or-ta').value.trim();
+  if(!text){document.getElementById('or-status').textContent='กรุณาวางข้อมูล OR Schedule ก่อน';return;}
+  const btn=document.getElementById('or-parse-btn');
+  btn.disabled=true;btn.textContent='⏳ กำลังดึงข้อมูล...';
+  document.getElementById('or-status').textContent='';
+  document.getElementById('or-result').style.display='none';
+  try{
+    const res=await fetch('https://clvqfnhikaedtomvusxy.supabase.co/functions/v1/parse-or',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({text})
+    });
+    const data=await res.json();
+    orParsedPatients=(data.patients||[]).map(p=>({...p,selected:true}));
+    if(!orParsedPatients.length){
+      document.getElementById('or-status').textContent='ไม่พบรายชื่อผู้ป่วย ลองวางข้อมูลใหม่อีกครั้ง';
+    } else {
+      renderORList();
+      document.getElementById('or-result').style.display='';
+      document.getElementById('or-status').textContent=`พบ ${orParsedPatients.length} ราย`;
+    }
+  }catch(e){
+    document.getElementById('or-status').textContent='เกิดข้อผิดพลาด: '+e.message;
+  }finally{
+    btn.disabled=false;btn.textContent='🔍 ดึงข้อมูลผู้ป่วย';
+  }
+}
+
+function renderORList(){
+  const list=document.getElementById('or-patient-list');
+  list.innerHTML=orParsedPatients.map((p,i)=>`
+    <div class="or-patient-row">
+      <input type="checkbox" class="or-pt-cb" ${p.selected?'checked':''} onchange="orParsedPatients[${i}].selected=this.checked" />
+      <div>
+        <div class="or-pt-name">รอ admit - ${esc(p.name)} - ${esc(p.hn)} - ${esc(p.operation)}</div>
+        <div class="or-pt-meta">HN ${esc(p.hn)} · ${esc(p.operation)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function admitAllFromOR(){
+  const selected=orParsedPatients.filter(p=>p.selected);
+  if(!selected.length){document.getElementById('or-status').textContent='ไม่มีรายการที่เลือก';return;}
+  const btn=document.getElementById('or-admit-all-btn');
+  btn.disabled=true;
+  document.getElementById('or-status').textContent='';
+  let done=0;
+  for(const p of selected){
+    const name=`รอ admit - ${p.name} - ${p.hn} - ${p.operation}`;
+    const pid=uid();
+    const tasks=DEFAULT_ADMIT_TASKS.map(text=>({id:uid(),patient_id:pid,text,done:false}));
+    wardMap[pid]=admitTargetWard;saveWardMap();
+    await sb.from('patients').insert({id:pid,name,open:true,ward:admitTargetWard});
+    if(tasks.length) await sb.from('tasks').insert(tasks);
+    await awardXP(1,'Admitted: '+name, admitTargetWard);
+    done++;
+    document.getElementById('or-status').textContent=`Admitting... ${done}/${selected.length}`;
+  }
+  btn.disabled=false;
+  document.getElementById('or-ta').value='';
+  document.getElementById('or-result').style.display='none';
+  document.getElementById('or-status').textContent=`✅ Admitted ${done} ราย → Ward ${admitTargetWard.toUpperCase()}`;
+  orParsedPatients=[];
   await loadAll();
   selectMenuBtn(admitTargetWard);
   switchTab('ward');
