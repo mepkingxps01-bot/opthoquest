@@ -5,6 +5,47 @@ const LINE_CHANNEL_SECRET = Deno.env.get("LINE_CHANNEL_SECRET")!;
 const LINE_CHANNEL_ACCESS_TOKEN = Deno.env.get("LINE_CHANNEL_ACCESS_TOKEN")!;
 const ANTHROPIC_API_KEY = Deno.env.get("ANTHROPIC_API_KEY")!;
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+async function parseORImage(base64: string, mediaType: string): Promise<{name:string,hn:string,operation:string}[]> {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": ANTHROPIC_API_KEY,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-6",
+      max_tokens: 1024,
+      messages: [{
+        role: "user",
+        content: [
+          { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
+          { type: "text", text: `Extract ALL patients from this OR schedule image.
+Return ONLY a valid JSON array — no explanation, no markdown.
+Each item: {"name":"...","hn":"...","operation":"..."}
+- name: patient full name exactly as shown
+- hn: HN number (digits only, usually 7 digits)
+- operation: Proposed Op / surgery name
+Skip the header row. Include every patient row you see.` }
+        ]
+      }],
+    }),
+  });
+  const json = await res.json();
+  console.log("parseORImage response:", JSON.stringify(json));
+  const raw = (json.content?.[0]?.text ?? "[]").trim();
+  try { return JSON.parse(raw); } catch {
+    const m = raw.match(/\[[\s\S]*\]/);
+    return m ? JSON.parse(m[0]) : [];
+  }
+}
+
 async function verifySignature(body: string, sig: string): Promise<boolean> {
   const key = await crypto.subtle.importKey(
     "raw",
@@ -132,11 +173,24 @@ ${JSON.stringify(patients, null, 2)}`,
 }
 
 serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   if (req.method !== "POST") return new Response("OK", { status: 200 });
 
   const body = await req.text();
-  const sig = req.headers.get("x-line-signature") ?? "";
 
+  // ── Parse OR image (called from web app, no LINE signature) ──
+  try {
+    const payload = JSON.parse(body);
+    if (payload.type === "parse_or_image" && payload.image) {
+      const patients = await parseORImage(payload.image, payload.mediaType ?? "image/jpeg");
+      return new Response(JSON.stringify({ patients }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+  } catch { /* not JSON or not parse_or_image — fall through to LINE bot */ }
+
+  // ── Normal LINE bot flow ──────────────────────────────────────
+  const sig = req.headers.get("x-line-signature") ?? "";
   if (!(await verifySignature(body, sig))) {
     return new Response("Unauthorized", { status: 401 });
   }

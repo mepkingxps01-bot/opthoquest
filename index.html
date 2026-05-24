@@ -236,9 +236,12 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .handover-misc-label{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--teal);margin-bottom:8px;}
 .or-import-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
 .or-import-title{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--teal);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
-.or-ta{width:100%;background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'DM Sans',sans-serif;font-size:12px;line-height:1.6;padding:10px 12px;outline:none;resize:vertical;min-height:90px;transition:border-color .15s;box-sizing:border-box;}
-.or-ta:focus{border-color:var(--teal);}
-.or-ta::placeholder{color:var(--text3);}
+.or-upload-zone{width:100%;min-height:100px;border:1.5px dashed var(--border2);border-radius:var(--radius-sm);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:border-color .2s,background .2s;box-sizing:border-box;padding:16px;}
+.or-upload-zone:hover{border-color:var(--teal);background:rgba(56,178,160,0.05);}
+.or-upload-zone.has-image{padding:0;overflow:hidden;border-style:solid;border-color:var(--teal);}
+.or-upload-icon{font-size:28px;}
+.or-upload-label{font-size:12px;color:var(--text3);text-align:center;}
+.or-preview{width:100%;display:block;border-radius:var(--radius-sm);}
 .or-parse-btn{width:100%;margin-top:8px;background:linear-gradient(135deg,var(--teal),#38b2a0);border:none;border-radius:var(--radius-sm);color:#fff;font-family:'Syne',sans-serif;font-size:13px;font-weight:700;padding:10px;cursor:pointer;transition:opacity .15s;letter-spacing:.04em;}
 .or-parse-btn:hover{opacity:.88;}
 .or-parse-btn:disabled{opacity:.45;cursor:not-allowed;}
@@ -337,8 +340,12 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
     <!-- OR Schedule Import -->
     <div class="or-import-card">
       <div class="or-import-title">🗒️ นำเข้าจาก OR Schedule</div>
-      <textarea id="or-ta" class="or-ta" placeholder="วาง OR Schedule ที่นี่ (copy จากระบบ หรือพิมพ์ชื่อ HN และ Op)..."></textarea>
-      <button class="or-parse-btn" id="or-parse-btn" onclick="parseORSchedule()">🔍 ดึงข้อมูลผู้ป่วย</button>
+      <input type="file" id="or-file-input" accept="image/*" capture="environment" style="display:none" onchange="onORImageSelected(this)" />
+      <div class="or-upload-zone" id="or-upload-zone" onclick="document.getElementById('or-file-input').click()">
+        <div class="or-upload-icon">📷</div>
+        <div class="or-upload-label">แตะเพื่อถ่ายรูป / เลือกรูป OR Schedule</div>
+      </div>
+      <button class="or-parse-btn" id="or-parse-btn" onclick="parseORSchedule()" disabled>🔍 ดึงข้อมูลผู้ป่วย</button>
       <div id="or-result" style="display:none">
         <div class="or-patient-list" id="or-patient-list"></div>
         <button class="or-admit-all-btn" id="or-admit-all-btn" onclick="admitAllFromOR()">🏥 Admit ทั้งหมด → Ward <span id="or-ward-label">A</span></button>
@@ -889,54 +896,65 @@ async function admitPatient(){
 
 // ── OR Schedule Import ────────────────────────────────────────
 let orParsedPatients = [];
+let orImageBase64 = '';
+let orImageMediaType = 'image/jpeg';
 
-function parseORText(text){
-  const patients=[];
-  const lines=text.split('\n');
-  for(const line of lines){
-    const trimmed=line.trim();
-    if(!trimmed)continue;
-    // Tab-separated: Order|Time|Room|Ward|HN|Name|Age|Diagnosis|ProposedOp|...
-    const cols=trimmed.split('\t');
-    if(cols.length>=9){
-      const hn=(cols[4]||'').trim();
-      const name=(cols[5]||'').trim();
-      const op=(cols[8]||'').trim();
-      if(hn&&/^\d{5,8}$/.test(hn)&&name&&op){
-        patients.push({name,hn,operation:op,selected:true});
-        continue;
-      }
-    }
-    // Fallback: line contains a 5-8 digit HN — try to extract Name and Op by position
-    const hnM=trimmed.match(/\b(\d{5,8})\b/);
-    if(!hnM)continue;
-    const hn=hnM[1];
-    const afterHN=trimmed.slice(trimmed.indexOf(hn)+hn.length).trim();
-    // afterHN is roughly: "Name Age Diagnosis Op ..."
-    // Op typically comes after Diagnosis — look for known patterns or just take last long segment
-    const parts=afterHN.split(/\t|\s{2,}/);
-    const name=(parts[0]||'').trim();
-    const op=(parts[parts.length-1]||parts[2]||'').trim();
-    if(name&&op&&name!==op){
-      patients.push({name,hn,operation:op,selected:true});
-    }
-  }
-  return patients;
+function onORImageSelected(input){
+  const file=input.files[0];
+  if(!file)return;
+  orImageMediaType=file.type||'image/jpeg';
+  const reader=new FileReader();
+  reader.onload=function(e){
+    // Resize to max 1600px wide to keep payload small
+    const img=new Image();
+    img.onload=function(){
+      const MAX=1600;
+      let w=img.width,h=img.height;
+      if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+      const canvas=document.createElement('canvas');
+      canvas.width=w;canvas.height=h;
+      canvas.getContext('2d').drawImage(img,0,0,w,h);
+      const dataUrl=canvas.toDataURL('image/jpeg',0.85);
+      orImageBase64=dataUrl.split(',')[1];
+      // Show preview
+      const zone=document.getElementById('or-upload-zone');
+      zone.className='or-upload-zone has-image';
+      zone.innerHTML=`<img src="${dataUrl}" class="or-preview" />`;
+      document.getElementById('or-parse-btn').disabled=false;
+      document.getElementById('or-status').textContent='';
+      document.getElementById('or-result').style.display='none';
+    };
+    img.src=e.target.result;
+  };
+  reader.readAsDataURL(file);
 }
 
-function parseORSchedule(){
-  const text=document.getElementById('or-ta').value.trim();
-  if(!text){document.getElementById('or-status').textContent='กรุณาวางข้อมูล OR Schedule ก่อน';return;}
+async function parseORSchedule(){
+  if(!orImageBase64){document.getElementById('or-status').textContent='กรุณาเลือกรูป OR Schedule ก่อน';return;}
+  const btn=document.getElementById('or-parse-btn');
+  btn.disabled=true;btn.textContent='⏳ กำลังอ่านรูป...';
   document.getElementById('or-status').textContent='';
   document.getElementById('or-result').style.display='none';
-  orParsedPatients=parseORText(text);
-  if(!orParsedPatients.length){
-    document.getElementById('or-status').textContent='ไม่พบรายชื่อผู้ป่วย — ลอง Copy ตารางจากระบบแล้ววางใหม่';
-    return;
+  try{
+    const res=await fetch('https://clvqfnhikaedtomvusxy.supabase.co/functions/v1/line-bot',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:'parse_or_image',image:orImageBase64,mediaType:orImageMediaType})
+    });
+    const data=await res.json();
+    orParsedPatients=(data.patients||[]).map(p=>({...p,selected:true}));
+    if(!orParsedPatients.length){
+      document.getElementById('or-status').textContent='ไม่พบรายชื่อผู้ป่วย ลองถ่ายรูปใหม่ให้ชัดขึ้น';
+    }else{
+      renderORList();
+      document.getElementById('or-result').style.display='';
+      document.getElementById('or-status').textContent=`พบ ${orParsedPatients.length} ราย`;
+    }
+  }catch(e){
+    document.getElementById('or-status').textContent='เกิดข้อผิดพลาด: '+e.message;
+  }finally{
+    btn.disabled=false;btn.textContent='🔍 ดึงข้อมูลผู้ป่วย';
   }
-  renderORList();
-  document.getElementById('or-result').style.display='';
-  document.getElementById('or-status').textContent=`พบ ${orParsedPatients.length} ราย`;
 }
 
 function renderORList(){
