@@ -22,46 +22,33 @@ async function parseORImage(base64: string, mediaType: string): Promise<{patient
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
       max_tokens: 2048,
+      system: `You extract patient rows from Thai hospital OR schedule images.
+Return ONLY a valid JSON array — no markdown fences, no explanation, no extra text.
+Each object must have exactly: "name" (full patient name as shown), "hn" (HN number as string), "operation" (Proposed Op column).
+Example: [{"name":"นายสมชาย ใจดี","hn":"4045398","operation":"Phaco + IOL RE"}]`,
       messages: [
         {
           role: "user",
           content: [
             { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
-            { type: "text", text: `This is a "Schedule of Operations" table from a Thai hospital.
-
-The table columns are in this exact order:
-Order | Time | Room | Ward | HN | Patient's name | Age | Diagnosis | Proposed Op | Surgeon | Anest | ...
-
-I need you to read every patient row carefully and extract:
-- "hn"        → column 5: the HN number, a 5-8 digit number (e.g. 3699464, 4045398)
-- "name"      → column 6: the patient's full name in Thai or English (e.g. "นายปั้น กองมณี", "MR.SAW SYAR")
-- "operation" → column 9: the Proposed Op / surgery (e.g. "Phaco + IOL, RE", "ECCE + IOL, RE", "BMR recession")
-
-Rules:
-- Read Thai text carefully — names start with prefixes like นาย, นาง, นางสาว, ด.ญ., ด.ช., พระ, or English MR., MRS., MS.
-- HN is always a pure number, never contains letters
-- Skip the header row and any blank rows
-- Include ALL patient rows even if some columns are hard to read
-
-Return ONLY a raw JSON array, nothing else before or after it.` }
+            { type: "text", text: `Read every patient row from this OR schedule table. Columns are: Order | Time | Room | Ward | HN | Patient name | Age | Diagnosis | Proposed Op | Surgeon ...
+Extract name (col 6), hn (col 5), operation (col 9) for every row. Skip the header. Return a JSON array only.` }
           ]
-        },
-        { role: "assistant", content: "[" }
+        }
       ],
     }),
   });
   const json = await res.json();
-  const claudeText = json.content?.[0]?.text;
+  const claudeText = (json.content?.[0]?.text ?? "").trim();
   const apiError = json.error ? JSON.stringify(json.error) : null;
-  const debugInfo = `HTTP ${res.status} | error: ${apiError ?? "none"} | text: ${(claudeText ?? "(empty)").slice(0, 300)}`;
+  const debugInfo = `HTTP ${res.status} | error: ${apiError ?? "none"} | text: ${claudeText.slice(0, 400)}`;
   console.log("parseORImage debug:", debugInfo);
-  if (!claudeText) return { patients: [], debug: debugInfo };
-  const raw = "[" + claudeText.trim();
+  const m = claudeText.match(/\[[\s\S]*\]/);
+  if (!m) return { patients: [], debug: debugInfo };
   try {
-    return { patients: JSON.parse(raw), debug: debugInfo };
+    return { patients: JSON.parse(m[0]), debug: debugInfo };
   } catch {
-    const m = raw.match(/\[[\s\S]*\]/);
-    return { patients: m ? JSON.parse(m[0]) : [], debug: debugInfo };
+    return { patients: [], debug: debugInfo };
   }
 }
 

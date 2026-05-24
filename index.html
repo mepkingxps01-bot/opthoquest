@@ -345,11 +345,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
         <div class="or-upload-icon">📷</div>
         <div class="or-upload-label">แตะเพื่อถ่ายรูป / เลือกรูป OR Schedule</div>
       </div>
-      <button class="or-parse-btn" id="or-parse-btn" onclick="parseORSchedule()" disabled>🔍 ดึงข้อมูลผู้ป่วย</button>
-      <div id="or-result" style="display:none">
-        <div class="or-patient-list" id="or-patient-list"></div>
-        <button class="or-admit-all-btn" id="or-admit-all-btn" onclick="admitAllFromOR()">🏥 Admit ทั้งหมด → Ward <span id="or-ward-label">A</span></button>
-      </div>
+      <button class="or-parse-btn" id="or-parse-btn" onclick="parseAndAdmitOR()" disabled>🏥 อ่านรูปและ Admit → Ward <span id="or-ward-label">A</span></button>
       <div class="or-status" id="or-status"></div>
     </div>
 
@@ -930,14 +926,13 @@ function onORImageSelected(input){
   reader.readAsDataURL(file);
 }
 
-async function parseORSchedule(){
+async function parseAndAdmitOR(){
   if(!orImageBase64){document.getElementById('or-status').textContent='กรุณาเลือกรูป OR Schedule ก่อน';return;}
   const btn=document.getElementById('or-parse-btn');
-  btn.disabled=true;btn.textContent='⏳ กำลังอ่านรูป...';
-  document.getElementById('or-status').textContent='';
-  document.getElementById('or-result').style.display='none';
+  const statusEl=document.getElementById('or-status');
+  btn.disabled=true;
+  statusEl.textContent=`📤 กำลังส่งรูป (${Math.round(orImageBase64.length*3/4/1024)}KB)...`;
   try{
-    document.getElementById('or-status').textContent=`📤 กำลังส่งรูป (${Math.round(orImageBase64.length*3/4/1024)}KB)...`;
     const res=await fetch('https://clvqfnhikaedtomvusxy.supabase.co/functions/v1/line-bot',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
@@ -945,65 +940,42 @@ async function parseORSchedule(){
     });
     if(!res.ok){
       const errText=await res.text();
-      document.getElementById('or-status').textContent=`❌ HTTP ${res.status}: ${errText.slice(0,200)}`;
+      statusEl.textContent=`❌ HTTP ${res.status}: ${errText.slice(0,200)}`;
       return;
     }
     const data=await res.json();
-    if(data.error){document.getElementById('or-status').textContent='❌ '+data.error;return;}
-    orParsedPatients=(data.patients||[]).map(p=>({...p,selected:true}));
-    if(!orParsedPatients.length){
-      document.getElementById('or-status').textContent='ไม่พบรายชื่อผู้ป่วย — debug: '+(data.debug||'(none)');
-    }else{
-      renderORList();
-      document.getElementById('or-result').style.display='';
-      document.getElementById('or-status').textContent=`พบ ${orParsedPatients.length} ราย`;
+    if(data.error){statusEl.textContent='❌ '+data.error;return;}
+    const found=(data.patients||[]);
+    if(!found.length){
+      statusEl.textContent='ไม่พบรายชื่อผู้ป่วย — '+( data.debug||'(no debug)');
+      return;
     }
+    // Auto-admit all found patients
+    statusEl.textContent=`พบ ${found.length} ราย กำลัง Admit...`;
+    let done=0;
+    for(const p of found){
+      const name=`รอ admit - ${p.name} - ${p.hn} - ${p.operation}`;
+      const pid=uid();
+      const tasks=DEFAULT_ADMIT_TASKS.map(text=>({id:uid(),patient_id:pid,text,done:false}));
+      wardMap[pid]=admitTargetWard;saveWardMap();
+      await sb.from('patients').insert({id:pid,name,open:true,ward:admitTargetWard,section:'ward'});
+      if(tasks.length) await sb.from('tasks').insert(tasks);
+      await awardXP(1,'Admitted: '+name,admitTargetWard);
+      done++;
+      statusEl.textContent=`กำลัง Admit... ${done}/${found.length}`;
+    }
+    statusEl.textContent=`✅ Admit แล้ว ${done} ราย → Ward ${admitTargetWard.toUpperCase()}`;
+    orImageBase64='';
+    document.getElementById('or-upload-zone').className='or-upload-zone';
+    document.getElementById('or-upload-zone').innerHTML='<div class="or-upload-icon">📷</div><div class="or-upload-label">แตะเพื่อถ่ายรูป / เลือกรูป OR Schedule</div>';
+    await loadAll();
+    selectMenuBtn(admitTargetWard);
+    switchTab('ward');
   }catch(e){
-    document.getElementById('or-status').textContent='เกิดข้อผิดพลาด: '+e.message;
+    statusEl.textContent='เกิดข้อผิดพลาด: '+e.message;
   }finally{
-    btn.disabled=false;btn.textContent='🔍 ดึงข้อมูลผู้ป่วย';
+    btn.disabled=false;
   }
-}
-
-function renderORList(){
-  const list=document.getElementById('or-patient-list');
-  list.innerHTML=orParsedPatients.map((p,i)=>`
-    <div class="or-patient-row">
-      <input type="checkbox" class="or-pt-cb" ${p.selected?'checked':''} onchange="orParsedPatients[${i}].selected=this.checked" />
-      <div>
-        <div class="or-pt-name">รอ admit - ${esc(p.name)} - ${esc(p.hn)} - ${esc(p.operation)}</div>
-        <div class="or-pt-meta">HN ${esc(p.hn)} · ${esc(p.operation)}</div>
-      </div>
-    </div>
-  `).join('');
-}
-
-async function admitAllFromOR(){
-  const selected=orParsedPatients.filter(p=>p.selected);
-  if(!selected.length){document.getElementById('or-status').textContent='ไม่มีรายการที่เลือก';return;}
-  const btn=document.getElementById('or-admit-all-btn');
-  btn.disabled=true;
-  document.getElementById('or-status').textContent='';
-  let done=0;
-  for(const p of selected){
-    const name=`รอ admit - ${p.name} - ${p.hn} - ${p.operation}`;
-    const pid=uid();
-    const tasks=DEFAULT_ADMIT_TASKS.map(text=>({id:uid(),patient_id:pid,text,done:false}));
-    wardMap[pid]=admitTargetWard;saveWardMap();
-    await sb.from('patients').insert({id:pid,name,open:true,ward:admitTargetWard});
-    if(tasks.length) await sb.from('tasks').insert(tasks);
-    await awardXP(1,'Admitted: '+name, admitTargetWard);
-    done++;
-    document.getElementById('or-status').textContent=`Admitting... ${done}/${selected.length}`;
-  }
-  btn.disabled=false;
-  document.getElementById('or-ta').value='';
-  document.getElementById('or-result').style.display='none';
-  document.getElementById('or-status').textContent=`✅ Admitted ${done} ราย → Ward ${admitTargetWard.toUpperCase()}`;
-  orParsedPatients=[];
-  await loadAll();
-  selectMenuBtn(admitTargetWard);
-  switchTab('ward');
 }
 
 async function togglePt(id){
