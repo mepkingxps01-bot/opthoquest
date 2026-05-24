@@ -88,6 +88,8 @@ serve(async (req) => {
       );
       const { data: patients } = await supabase.from("patients").select("*").order("created_at");
       const { data: tasks } = await supabase.from("tasks").select("*").order("created_at");
+      const { data: noRoundSetting } = await supabase.from("settings").select("value").eq("key", "no_round").single();
+      const noRound = noRoundSetting?.value === "true";
 
       const wardEmojis: Record<string, string> = { a:"🔵", b:"🟢", c:"🟡", d:"🔴" };
       const e = wardEmojis[ward] ?? "🏥";
@@ -98,7 +100,7 @@ serve(async (req) => {
       );
 
       let msg = `${e} สาย ${ward.toUpperCase()} ${e}\n`;
-      msg += `🕐 เวลาราวน์ : ${time}\n\n`;
+      msg += noRound ? `ไม่มีราวนด์\n\n` : `🕐 เวลาราวน์ : ${time}\n\n`;
 
       if (wardPts.length === 0) {
         msg += `ไม่มีคนไข้ admit เจ้าค่ะ\n\n`;

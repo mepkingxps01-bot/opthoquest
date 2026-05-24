@@ -106,6 +106,12 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .round-label{font-size:11px;font-weight:700;color:var(--purple);letter-spacing:.06em;white-space:nowrap;}
 .round-time-input{background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'Syne',sans-serif;font-size:15px;font-weight:700;padding:5px 8px;outline:none;width:95px;text-align:center;}
 .round-time-input:focus{border-color:var(--purple);}
+.round-time-input:disabled{opacity:0.35;cursor:not-allowed;}
+.no-round-wrap{display:flex;align-items:center;gap:6px;margin-left:auto;cursor:pointer;user-select:none;}
+.no-round-cb{width:16px;height:16px;border-radius:5px;border:1.5px solid var(--border2);background:transparent;cursor:pointer;appearance:none;-webkit-appearance:none;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.no-round-cb:checked{background:var(--red,#ff7070);border-color:var(--red,#ff7070);}
+.no-round-cb:checked::after{content:'✕';color:#fff;font-size:10px;line-height:1;display:block;text-align:center;}
+.no-round-label{font-size:11px;font-weight:600;color:var(--text3);white-space:nowrap;}
 .tab{flex:1;padding:9px 4px;border-radius:var(--radius-sm);border:0.5px solid var(--tab-border);background:transparent;color:var(--tab-color);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:5px;}
 .tab.active{background:var(--tab-active-bg);border-color:var(--tab-active-border);color:var(--text);font-weight:600;}
 .tab:hover:not(.active){background:var(--tab-hover-bg);color:var(--tab-hover-color);}
@@ -289,6 +295,10 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
   <div class="round-bar">
     <span class="round-label">⏰ เวลาราวนด์ :</span>
     <input type="time" id="round-time-input" class="round-time-input" />
+    <label class="no-round-wrap">
+      <input type="checkbox" id="no-round-cb" class="no-round-cb" onchange="onNoRoundChange(this.checked)" />
+      <span class="no-round-label">ไม่มีราวนด์</span>
+    </label>
   </div>
 
   <div id="view-ward">
@@ -750,6 +760,9 @@ async function loadAll(){
     const inp=document.getElementById('round-time-input');
     if(inp&&document.activeElement!==inp)inp.value=rtVal;
   }
+  const nrVal = allSettings['no_round']==='true';
+  localStorage.setItem('wq_no_round', nrVal?'true':'false');
+  applyNoRound(nrVal);
   ['a','b','c','d'].forEach(w=>{handoverNotes[w]=allSettings['handover_'+w]||'';});
   renderHandover();
   handoverMiscNote=allSettings['handover_misc']||'';
@@ -924,6 +937,22 @@ if(_roundInput)_roundInput.addEventListener('change',e=>{
   localStorage.setItem('wq_round_time',val);
   sb.from('settings').upsert({key:'round_time',value:val}).then(()=>{});
 });
+
+function applyNoRound(checked){
+  const cb=document.getElementById('no-round-cb');
+  const inp=document.getElementById('round-time-input');
+  if(cb)cb.checked=checked;
+  if(inp)inp.disabled=checked;
+}
+
+function onNoRoundChange(checked){
+  localStorage.setItem('wq_no_round',checked?'true':'false');
+  applyNoRound(checked);
+  sb.from('settings').upsert({key:'no_round',value:String(checked)}).then(()=>{});
+}
+
+// restore no_round on page load
+applyNoRound(localStorage.getItem('wq_no_round')==='true');
 
 const _initWard=localStorage.getItem('wq_active_ward')||'a';
 if(_initWard!=='a')selectMenuBtn(_initWard);

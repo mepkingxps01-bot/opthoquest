@@ -33,14 +33,16 @@ async function lineReply(replyToken: string, text: string) {
 }
 
 async function fetchWardData(supabase: ReturnType<typeof createClient>) {
-  const [{ data: patients }, { data: tasks }, { data: setting }] = await Promise.all([
+  const [{ data: patients }, { data: tasks }, { data: setting }, { data: noRoundSetting }] = await Promise.all([
     supabase.from("patients").select("*").order("created_at"),
     supabase.from("tasks").select("*").order("created_at"),
     supabase.from("settings").select("value").eq("key", "round_time").single(),
+    supabase.from("settings").select("value").eq("key", "no_round").single(),
   ]);
 
   return {
     roundTime: setting?.value || null,
+    noRound: noRoundSetting?.value === "true",
     patients: (patients ?? []).map((p: any) => ({
       name: p.name,
       ward: p.ward ?? "A",
@@ -52,8 +54,8 @@ async function fetchWardData(supabase: ReturnType<typeof createClient>) {
   };
 }
 
-async function askClaude(userMessage: string, wardData: { roundTime: string | null, patients: any[] }): Promise<string> {
-  const { roundTime, patients } = wardData;
+async function askClaude(userMessage: string, wardData: { roundTime: string | null, noRound: boolean, patients: any[] }): Promise<string> {
+  const { roundTime, noRound, patients } = wardData;
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -106,7 +108,7 @@ async function askClaude(userMessage: string, wardData: { roundTime: string | nu
 • นัด OR
 • DC summary
 
-เวลาราวนด์ที่ตั้งไว้: ${roundTime ? roundTime + " น." : "ยังไม่ได้ตั้ง"}
+เวลาราวนด์ที่ตั้งไว้: ${noRound ? "ไม่มีราวนด์" : (roundTime ? roundTime + " น." : "ยังไม่ได้ตั้ง")}
 
 ข้อมูล ward ตอนนี้:
 ${JSON.stringify(patients, null, 2)}`,
