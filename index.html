@@ -890,33 +890,53 @@ async function admitPatient(){
 // ── OR Schedule Import ────────────────────────────────────────
 let orParsedPatients = [];
 
-async function parseORSchedule(){
+function parseORText(text){
+  const patients=[];
+  const lines=text.split('\n');
+  for(const line of lines){
+    const trimmed=line.trim();
+    if(!trimmed)continue;
+    // Tab-separated: Order|Time|Room|Ward|HN|Name|Age|Diagnosis|ProposedOp|...
+    const cols=trimmed.split('\t');
+    if(cols.length>=9){
+      const hn=(cols[4]||'').trim();
+      const name=(cols[5]||'').trim();
+      const op=(cols[8]||'').trim();
+      if(hn&&/^\d{5,8}$/.test(hn)&&name&&op){
+        patients.push({name,hn,operation:op,selected:true});
+        continue;
+      }
+    }
+    // Fallback: line contains a 5-8 digit HN — try to extract Name and Op by position
+    const hnM=trimmed.match(/\b(\d{5,8})\b/);
+    if(!hnM)continue;
+    const hn=hnM[1];
+    const afterHN=trimmed.slice(trimmed.indexOf(hn)+hn.length).trim();
+    // afterHN is roughly: "Name Age Diagnosis Op ..."
+    // Op typically comes after Diagnosis — look for known patterns or just take last long segment
+    const parts=afterHN.split(/\t|\s{2,}/);
+    const name=(parts[0]||'').trim();
+    const op=(parts[parts.length-1]||parts[2]||'').trim();
+    if(name&&op&&name!==op){
+      patients.push({name,hn,operation:op,selected:true});
+    }
+  }
+  return patients;
+}
+
+function parseORSchedule(){
   const text=document.getElementById('or-ta').value.trim();
   if(!text){document.getElementById('or-status').textContent='กรุณาวางข้อมูล OR Schedule ก่อน';return;}
-  const btn=document.getElementById('or-parse-btn');
-  btn.disabled=true;btn.textContent='⏳ กำลังดึงข้อมูล...';
   document.getElementById('or-status').textContent='';
   document.getElementById('or-result').style.display='none';
-  try{
-    const res=await fetch('https://clvqfnhikaedtomvusxy.supabase.co/functions/v1/parse-or',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({text})
-    });
-    const data=await res.json();
-    orParsedPatients=(data.patients||[]).map(p=>({...p,selected:true}));
-    if(!orParsedPatients.length){
-      document.getElementById('or-status').textContent='ไม่พบรายชื่อผู้ป่วย ลองวางข้อมูลใหม่อีกครั้ง';
-    } else {
-      renderORList();
-      document.getElementById('or-result').style.display='';
-      document.getElementById('or-status').textContent=`พบ ${orParsedPatients.length} ราย`;
-    }
-  }catch(e){
-    document.getElementById('or-status').textContent='เกิดข้อผิดพลาด: '+e.message;
-  }finally{
-    btn.disabled=false;btn.textContent='🔍 ดึงข้อมูลผู้ป่วย';
+  orParsedPatients=parseORText(text);
+  if(!orParsedPatients.length){
+    document.getElementById('or-status').textContent='ไม่พบรายชื่อผู้ป่วย — ลอง Copy ตารางจากระบบแล้ววางใหม่';
+    return;
   }
+  renderORList();
+  document.getElementById('or-result').style.display='';
+  document.getElementById('or-status').textContent=`พบ ${orParsedPatients.length} ราย`;
 }
 
 function renderORList(){
