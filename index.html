@@ -220,7 +220,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .handover-btn:active{transform:scale(.98);}
 .handover-area{margin-top:12px;animation:fadeIn .2s ease;}
 .handover-ward-label{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--purple);margin-bottom:8px;}
-.handover-ta{width:100%;background:var(--card);border:0.5px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.7;padding:14px;outline:none;resize:none;overflow:hidden;min-height:110px;transition:border-color .15s;}
+.handover-ta{width:100%;background:var(--card);border:0.5px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.7;padding:14px;outline:none;resize:vertical;min-height:160px;overflow-y:auto;transition:border-color .15s;}
 .handover-ta:focus{border-color:var(--purple);}
 .handover-ta::placeholder{color:var(--text3);}
 .handover-saving{font-size:10px;color:var(--text3);text-align:right;margin-top:5px;min-height:14px;transition:opacity .2s;}
@@ -294,18 +294,12 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
   <div id="view-ward">
     <div id="ward-list"></div>
     <div class="handover-section">
-      <button class="handover-btn" onclick="toggleHandover()">📋 ส่งเวร</button>
-      <div class="handover-area" id="handover-area" style="display:none">
-        <div class="handover-ward-label" id="handover-ward-label">Ward A — บันทึกส่งเวร</div>
-        <textarea class="handover-ta" id="handover-ta" placeholder="พิมพ์บันทึกส่งเวร..." oninput="onHandoverInput(this)"></textarea>
-        <div class="handover-saving" id="handover-saving"></div>
-      </div>
-      <button class="handover-misc-btn" onclick="toggleHandoverMisc()">📝 ส่งเวร Misc</button>
-      <div class="handover-area" id="handover-misc-area" style="display:none">
-        <div class="handover-misc-label">Misc — ทุก Ward</div>
-        <textarea class="handover-ta" id="handover-misc-ta" placeholder="พิมพ์บันทึก Misc..." oninput="onHandoverMiscInput(this)"></textarea>
-        <div class="handover-saving" id="handover-misc-saving"></div>
-      </div>
+      <div class="handover-ward-label" id="handover-ward-label">📋 ส่งเวร — Ward A</div>
+      <textarea class="handover-ta" id="handover-ta" placeholder="พิมพ์บันทึกส่งเวร..." oninput="onHandoverInput(this)"></textarea>
+      <div class="handover-saving" id="handover-saving"></div>
+      <div class="handover-misc-label" style="margin-top:14px;">📝 Misc — ทุก Ward</div>
+      <textarea class="handover-ta" id="handover-misc-ta" placeholder="พิมพ์บันทึก Misc..." oninput="onHandoverMiscInput(this)"></textarea>
+      <div class="handover-saving" id="handover-misc-saving"></div>
     </div>
   </div>
 
@@ -381,10 +375,8 @@ let admitDefaultSel = new Set(DEFAULT_ADMIT_TASKS.map((_,i)=>i));
 let activeWard = 'a';
 let admitTargetWard = 'a';
 let handoverNotes = {a:'',b:'',c:'',d:''};
-let handoverOpen = false;
 let handoverSaveTimer = null;
 let handoverMiscNote = '';
-let handoverMiscOpen = false;
 let handoverMiscSaveTimer = null;
 let wardMap = JSON.parse(localStorage.getItem('wq_ward_map')||'{}');
 function saveWardMap(){localStorage.setItem('wq_ward_map',JSON.stringify(wardMap));}
@@ -660,8 +652,7 @@ function selectMenuBtn(btn){
   ['a','b','c','d'].forEach(b=>{
     document.getElementById('menu-btn-'+b).className='menu-btn'+(b===btn?' active':'');
   });
-  renderXP();renderSummary();renderWard();
-  if(handoverOpen)renderHandover();
+  renderXP();renderSummary();renderWard();renderHandover();
 }
 function setAdmitWard(btn){
   admitTargetWard=btn;
@@ -696,34 +687,14 @@ async function resetWardXP(){
 
 // ── Handover helpers ──────────────────────────────────────────
 
-function autoResize(el){
-  el.style.height='auto';
-  el.style.height=el.scrollHeight+'px';
-}
-
 function renderHandover(){
   const ta=document.getElementById('handover-ta');
   const lbl=document.getElementById('handover-ward-label');
-  if(ta&&document.activeElement!==ta){
-    ta.value=handoverNotes[activeWard]||'';
-    autoResize(ta);
-  }
-  if(lbl)lbl.textContent='Ward '+activeWard.toUpperCase()+' — บันทึกส่งเวร';
-}
-
-function toggleHandover(){
-  handoverOpen=!handoverOpen;
-  const area=document.getElementById('handover-area');
-  if(area)area.style.display=handoverOpen?'':'none';
-  if(handoverOpen){
-    renderHandover();
-    const ta=document.getElementById('handover-ta');
-    if(ta)setTimeout(()=>ta.focus(),50);
-  }
+  if(ta&&document.activeElement!==ta)ta.value=handoverNotes[activeWard]||'';
+  if(lbl)lbl.textContent='📋 ส่งเวร — Ward '+activeWard.toUpperCase();
 }
 
 function onHandoverInput(el){
-  autoResize(el);
   handoverNotes[activeWard]=el.value;
   const saving=document.getElementById('handover-saving');
   if(saving)saving.textContent='กำลังบันทึก...';
@@ -737,19 +708,7 @@ async function saveHandoverNote(ward,text){
   if(saving){saving.textContent='✓ บันทึกแล้ว';setTimeout(()=>{if(saving)saving.textContent='';},1500);}
 }
 
-function toggleHandoverMisc(){
-  handoverMiscOpen=!handoverMiscOpen;
-  const area=document.getElementById('handover-misc-area');
-  if(area)area.style.display=handoverMiscOpen?'':'none';
-  if(handoverMiscOpen){
-    const ta=document.getElementById('handover-misc-ta');
-    if(ta&&document.activeElement!==ta){ta.value=handoverMiscNote;autoResize(ta);}
-    if(ta)setTimeout(()=>ta.focus(),50);
-  }
-}
-
 function onHandoverMiscInput(el){
-  autoResize(el);
   handoverMiscNote=el.value;
   const saving=document.getElementById('handover-misc-saving');
   if(saving)saving.textContent='กำลังบันทึก...';
@@ -767,19 +726,24 @@ async function saveHandoverMiscNote(text){
 
 async function loadAll(){
   setSyncDot('syncing');
-  const [pRes, tRes, xpRes, logRes, settingRes] = await Promise.all([
+  const [pRes, tRes, xpRes, logRes] = await Promise.all([
     sb.from('patients').select('*').order('created_at'),
     sb.from('tasks').select('*').order('created_at'),
     sb.from('xp_data').select('*').eq('id',1).single(),
     sb.from('xp_log').select('*').order('created_at',{ascending:false}).limit(60),
-    sb.from('settings').select('*'),
   ]);
   let pts = pRes.data||[];
   const tks = tRes.data||[];
   xpTotal = xpRes.data?.total||0;
   xpLog = (logRes.data||[]).map(r=>({xp:r.xp,reason:r.reason,time:r.time}));
+
+  // Settings fetch is intentionally separate so it never blocks the main app
   const allSettings={};
-  (settingRes.data||[]).forEach(r=>{allSettings[r.key]=r.value;});
+  try{
+    const {data:settingsData}=await sb.from('settings').select('*');
+    (settingsData||[]).forEach(r=>{allSettings[r.key]=r.value;});
+  }catch(e){console.warn('Settings load skipped:',e);}
+
   const rtVal = allSettings['round_time']||'';
   if(rtVal){
     localStorage.setItem('wq_round_time',rtVal);
@@ -787,12 +751,10 @@ async function loadAll(){
     if(inp&&document.activeElement!==inp)inp.value=rtVal;
   }
   ['a','b','c','d'].forEach(w=>{handoverNotes[w]=allSettings['handover_'+w]||'';});
-  if(handoverOpen)renderHandover();
+  renderHandover();
   handoverMiscNote=allSettings['handover_misc']||'';
-  if(handoverMiscOpen){
-    const ta=document.getElementById('handover-misc-ta');
-    if(ta&&document.activeElement!==ta){ta.value=handoverMiscNote;autoResize(ta);}
-  }
+  const miscTa=document.getElementById('handover-misc-ta');
+  if(miscTa&&document.activeElement!==miscTa)miscTa.value=handoverMiscNote;
   if(xpTotal>0 && Object.values(xpByWard).every(v=>v===0)){
     xpByWard['a']=xpTotal;saveXpByWard();
   }
