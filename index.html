@@ -952,7 +952,7 @@ async function parseORSchedule(){
     if(data.error){document.getElementById('or-status').textContent='❌ '+data.error;return;}
     orParsedPatients=(data.patients||[]).map(p=>({...p,selected:true}));
     if(!orParsedPatients.length){
-      document.getElementById('or-status').textContent='ไม่พบรายชื่อผู้ป่วย (ลองอีกครั้ง หรือ Hard Refresh หน้าก่อน)';
+      document.getElementById('or-status').textContent='ไม่พบรายชื่อผู้ป่วย — debug: '+(data.debug||'(none)');
     }else{
       renderORList();
       document.getElementById('or-result').style.display='';

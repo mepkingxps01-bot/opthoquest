@@ -11,7 +11,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-async function parseORImage(base64: string, mediaType: string): Promise<{name:string,hn:string,operation:string}[]> {
+async function parseORImage(base64: string, mediaType: string): Promise<{patients:{name:string,hn:string,operation:string}[], debug:string}> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -52,14 +52,16 @@ Return ONLY a raw JSON array, nothing else before or after it.` }
   });
   const json = await res.json();
   const claudeText = json.content?.[0]?.text;
-  console.log("parseORImage HTTP status:", res.status);
-  console.log("parseORImage error:", json.error ? JSON.stringify(json.error) : "none");
-  console.log("parseORImage raw text:", claudeText ?? "(empty)");
-  if (!claudeText) return [];
+  const apiError = json.error ? JSON.stringify(json.error) : null;
+  const debugInfo = `HTTP ${res.status} | error: ${apiError ?? "none"} | text: ${(claudeText ?? "(empty)").slice(0, 300)}`;
+  console.log("parseORImage debug:", debugInfo);
+  if (!claudeText) return { patients: [], debug: debugInfo };
   const raw = "[" + claudeText.trim();
-  try { return JSON.parse(raw); } catch {
+  try {
+    return { patients: JSON.parse(raw), debug: debugInfo };
+  } catch {
     const m = raw.match(/\[[\s\S]*\]/);
-    return m ? JSON.parse(m[0]) : [];
+    return { patients: m ? JSON.parse(m[0]) : [], debug: debugInfo };
   }
 }
 
@@ -199,8 +201,8 @@ serve(async (req) => {
   try {
     const payload = JSON.parse(body);
     if (payload.type === "parse_or_image" && payload.image) {
-      const patients = await parseORImage(payload.image, payload.mediaType ?? "image/jpeg");
-      return new Response(JSON.stringify({ patients }), {
+      const { patients, debug } = await parseORImage(payload.image, payload.mediaType ?? "image/jpeg");
+      return new Response(JSON.stringify({ patients, debug }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
