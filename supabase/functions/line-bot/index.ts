@@ -21,25 +21,38 @@ async function parseORImage(base64: string, mediaType: string): Promise<{name:st
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-6",
-      max_tokens: 1024,
-      messages: [{
-        role: "user",
-        content: [
-          { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
-          { type: "text", text: `Extract ALL patients from this OR schedule image.
-Return ONLY a valid JSON array — no explanation, no markdown.
-Each item: {"name":"...","hn":"...","operation":"..."}
-- name: patient full name exactly as shown
-- hn: HN number (digits only, usually 7 digits)
-- operation: Proposed Op / surgery name
-Skip the header row. Include every patient row you see.` }
-        ]
-      }],
+      max_tokens: 2048,
+      messages: [
+        {
+          role: "user",
+          content: [
+            { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
+            { type: "text", text: `This is a "Schedule of Operations" table from a Thai hospital.
+
+The table columns are in this exact order:
+Order | Time | Room | Ward | HN | Patient's name | Age | Diagnosis | Proposed Op | Surgeon | Anest | ...
+
+I need you to read every patient row carefully and extract:
+- "hn"        → column 5: the HN number, a 5-8 digit number (e.g. 3699464, 4045398)
+- "name"      → column 6: the patient's full name in Thai or English (e.g. "นายปั้น กองมณี", "MR.SAW SYAR")
+- "operation" → column 9: the Proposed Op / surgery (e.g. "Phaco + IOL, RE", "ECCE + IOL, RE", "BMR recession")
+
+Rules:
+- Read Thai text carefully — names start with prefixes like นาย, นาง, นางสาว, ด.ญ., ด.ช., พระ, or English MR., MRS., MS.
+- HN is always a pure number, never contains letters
+- Skip the header row and any blank rows
+- Include ALL patient rows even if some columns are hard to read
+
+Return ONLY a raw JSON array, nothing else before or after it.` }
+          ]
+        },
+        { role: "assistant", content: "[" }
+      ],
     }),
   });
   const json = await res.json();
   console.log("parseORImage response:", JSON.stringify(json));
-  const raw = (json.content?.[0]?.text ?? "[]").trim();
+  const raw = "[" + (json.content?.[0]?.text ?? "[]").trim();
   try { return JSON.parse(raw); } catch {
     const m = raw.match(/\[[\s\S]*\]/);
     return m ? JSON.parse(m[0]) : [];
