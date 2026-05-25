@@ -226,7 +226,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .handover-btn:active{transform:scale(.98);}
 .handover-area{margin-top:12px;animation:fadeIn .2s ease;}
 .handover-ward-label{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--purple);margin-bottom:8px;}
-.handover-ta{width:100%;background:var(--card);border:0.5px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.7;padding:14px;outline:none;resize:vertical;min-height:160px;overflow-y:auto;transition:border-color .15s;}
+.handover-ta{width:100%;background:var(--card);border:0.5px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.7;padding:14px;outline:none;resize:none;min-height:120px;overflow:hidden;transition:border-color .15s;}
 .handover-ta:focus{border-color:var(--purple);}
 .handover-ta::placeholder{color:var(--text3);}
 .handover-saving{font-size:10px;color:var(--text3);text-align:right;margin-top:5px;min-height:14px;transition:opacity .2s;}
@@ -329,13 +329,13 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
       <button class="handover-btn" onclick="toggleHandover()">📋 ส่งเวร</button>
       <div class="handover-area" id="handover-area" style="display:none">
         <div class="handover-ward-label" id="handover-ward-label">Ward A — บันทึกส่งเวร</div>
-        <textarea class="handover-ta" id="handover-ta" placeholder="พิมพ์บันทึกส่งเวร..." oninput="onHandoverInput(this)"></textarea>
+        <textarea class="handover-ta" id="handover-ta" placeholder="พิมพ์บันทึกส่งเวร..." oninput="onHandoverInput(this);autoResize(this)"></textarea>
         <div class="handover-saving" id="handover-saving"></div>
       </div>
       <button class="handover-misc-btn" onclick="toggleHandoverMisc()">📝 ส่งเวร Misc</button>
       <div class="handover-area" id="handover-misc-area" style="display:none">
         <div class="handover-misc-label">Misc — ทุก Ward</div>
-        <textarea class="handover-ta" id="handover-misc-ta" placeholder="พิมพ์บันทึก Misc..." oninput="onHandoverMiscInput(this)"></textarea>
+        <textarea class="handover-ta" id="handover-misc-ta" placeholder="พิมพ์บันทึก Misc..." oninput="onHandoverMiscInput(this);autoResize(this)"></textarea>
         <div class="handover-saving" id="handover-misc-saving"></div>
       </div>
     </div>
@@ -750,6 +750,8 @@ function renderHandover(){
   if(lbl)lbl.textContent='Ward '+activeWard.toUpperCase()+' — บันทึกส่งเวร';
 }
 
+function autoResize(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';}
+
 function toggleHandover(){
   handoverOpen=!handoverOpen;
   const area=document.getElementById('handover-area');
@@ -757,6 +759,7 @@ function toggleHandover(){
   if(handoverOpen){
     const ta=document.getElementById('handover-ta');
     if(ta&&document.activeElement!==ta)ta.value=handoverNotes[activeWard]||'';
+    if(ta)autoResize(ta);
   }
 }
 
@@ -767,6 +770,7 @@ function toggleHandoverMisc(){
   if(handoverMiscOpen){
     const ta=document.getElementById('handover-misc-ta');
     if(ta&&document.activeElement!==ta)ta.value=handoverMiscNote;
+    if(ta)autoResize(ta);
   }
 }
 
