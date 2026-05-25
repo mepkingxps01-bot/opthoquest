@@ -326,12 +326,18 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
   <div id="view-ward">
     <div id="ward-list"></div>
     <div class="handover-section">
-      <div class="handover-ward-label" id="handover-ward-label">📋 ส่งเวร — Ward A</div>
-      <textarea class="handover-ta" id="handover-ta" placeholder="พิมพ์บันทึกส่งเวร..." oninput="onHandoverInput(this)"></textarea>
-      <div class="handover-saving" id="handover-saving"></div>
-      <div class="handover-misc-label" style="margin-top:14px;">📝 Misc — ทุก Ward</div>
-      <textarea class="handover-ta" id="handover-misc-ta" placeholder="พิมพ์บันทึก Misc..." oninput="onHandoverMiscInput(this)"></textarea>
-      <div class="handover-saving" id="handover-misc-saving"></div>
+      <button class="handover-btn" onclick="toggleHandover()">📋 ส่งเวร</button>
+      <div class="handover-area" id="handover-area" style="display:none">
+        <div class="handover-ward-label" id="handover-ward-label">Ward A — บันทึกส่งเวร</div>
+        <textarea class="handover-ta" id="handover-ta" placeholder="พิมพ์บันทึกส่งเวร..." oninput="onHandoverInput(this)"></textarea>
+        <div class="handover-saving" id="handover-saving"></div>
+      </div>
+      <button class="handover-misc-btn" onclick="toggleHandoverMisc()">📝 ส่งเวร Misc</button>
+      <div class="handover-area" id="handover-misc-area" style="display:none">
+        <div class="handover-misc-label">Misc — ทุก Ward</div>
+        <textarea class="handover-ta" id="handover-misc-ta" placeholder="พิมพ์บันทึก Misc..." oninput="onHandoverMiscInput(this)"></textarea>
+        <div class="handover-saving" id="handover-misc-saving"></div>
+      </div>
     </div>
   </div>
 
@@ -420,8 +426,10 @@ let admitDefaultSel = new Set(DEFAULT_ADMIT_TASKS.map((_,i)=>i));
 let activeWard = 'a';
 let admitTargetWard = 'a';
 let handoverNotes = {a:'',b:'',c:'',d:''};
+let handoverOpen = false;
 let handoverSaveTimer = null;
 let handoverMiscNote = '';
+let handoverMiscOpen = false;
 let handoverMiscSaveTimer = null;
 let wardMap = JSON.parse(localStorage.getItem('wq_ward_map')||'{}');
 function saveWardMap(){localStorage.setItem('wq_ward_map',JSON.stringify(wardMap));}
@@ -739,7 +747,27 @@ function renderHandover(){
   const ta=document.getElementById('handover-ta');
   const lbl=document.getElementById('handover-ward-label');
   if(ta&&document.activeElement!==ta)ta.value=handoverNotes[activeWard]||'';
-  if(lbl)lbl.textContent='📋 ส่งเวร — Ward '+activeWard.toUpperCase();
+  if(lbl)lbl.textContent='Ward '+activeWard.toUpperCase()+' — บันทึกส่งเวร';
+}
+
+function toggleHandover(){
+  handoverOpen=!handoverOpen;
+  const area=document.getElementById('handover-area');
+  if(area)area.style.display=handoverOpen?'':'none';
+  if(handoverOpen){
+    const ta=document.getElementById('handover-ta');
+    if(ta&&document.activeElement!==ta)ta.value=handoverNotes[activeWard]||'';
+  }
+}
+
+function toggleHandoverMisc(){
+  handoverMiscOpen=!handoverMiscOpen;
+  const area=document.getElementById('handover-misc-area');
+  if(area)area.style.display=handoverMiscOpen?'':'none';
+  if(handoverMiscOpen){
+    const ta=document.getElementById('handover-misc-ta');
+    if(ta&&document.activeElement!==ta)ta.value=handoverMiscNote;
+  }
 }
 
 function onHandoverInput(el){
