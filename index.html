@@ -164,9 +164,17 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .pt-block.discharged{border-color:rgba(110,231,183,0.5);background:rgba(110,231,183,0.04);}
 .pt-block.discharged .pt-name{color:var(--green);}
 .pt-block.discharged .pt-avatar{background:var(--green-dim);border-color:rgba(110,231,183,0.35);color:var(--green);}
+.pt-block.or-status-scheduled{border-color:rgba(37,99,235,0.5);border-left:3px solid #2563eb;}
+.pt-block.or-status-emergency{border-color:rgba(220,38,38,0.5);border-left:3px solid #dc2626;}
 .badge-dc{background:var(--green-dim);color:var(--green);}
 .move-picker{display:flex;align-items:center;gap:5px;margin-top:8px;flex-wrap:wrap;}
 .move-picker-label{font-size:11px;color:var(--text3);}
+.or-status-btns{display:flex;flex-direction:column;gap:3px;align-items:center;padding-right:8px;flex-shrink:0;}
+.or-sched-btn,.or-emer-btn{font-size:9px;line-height:1.2;padding:3px 5px;border-radius:5px;border:1px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;text-align:center;min-width:38px;}
+.or-sched-btn:hover{border-color:#2563eb;color:#2563eb;}
+.or-emer-btn:hover{border-color:#dc2626;color:#dc2626;}
+.or-sched-btn.active{background:rgba(37,99,235,0.12);border-color:#2563eb;color:#2563eb;font-weight:600;}
+.or-emer-btn.active{background:rgba(220,38,38,0.12);border-color:#dc2626;color:#dc2626;font-weight:600;}
 .cancel-dc-btn{background:var(--red-dim);border:0.5px solid rgba(255,112,112,0.3);border-radius:var(--radius-sm);color:var(--red);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:6px 10px;cursor:pointer;transition:all .2s;white-space:nowrap;}
 
 .admit-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
@@ -440,6 +448,14 @@ function saveDischargeMap(){localStorage.setItem('wq_discharge_map',JSON.stringi
 let sectionMap = JSON.parse(localStorage.getItem('wq_section_map')||'{}');
 function saveSectionMap(){localStorage.setItem('wq_section_map',JSON.stringify(sectionMap));}
 function getSection(pid){return sectionMap[pid]||'ward';}
+let orStatusMap = JSON.parse(localStorage.getItem('wq_or_status')||'{}');
+function saveORStatusMap(){localStorage.setItem('wq_or_status',JSON.stringify(orStatusMap));}
+function getORStatus(pid){return orStatusMap[pid]||null;}
+function toggleORStatus(pid,type){
+  orStatusMap[pid]=getORStatus(pid)===type?null:type;
+  saveORStatusMap();
+  renderWard();
+}
 function formatCountdown(ms){
   if(ms<=0)return'soon';
   const h=Math.floor(ms/3600000),m=Math.floor((ms%3600000)/60000);
@@ -509,8 +525,13 @@ function buildPatientCard(p,idx){
   const isDc=!!dischargeMap[p.id];
   const dcRemaining=isDc?Math.max(0,2*60*60*1000-(Date.now()-dischargeMap[p.id])):0;
   const sec=getSection(p.id);
-  return `<div class="pt-block${isDc?' discharged':''}">
+  const orSt=getORStatus(p.id);
+  return `<div class="pt-block${isDc?' discharged':''}${orSt?' or-status-'+orSt:''}">
     <div class="pt-block-header" onclick="togglePt('${p.id}')">
+      <div class="or-status-btns" onclick="event.stopPropagation()">
+        <button class="or-sched-btn${orSt==='scheduled'?' active':''}" onclick="toggleORStatus('${p.id}','scheduled')">🗓 ตาม<br>ตาราง</button>
+        <button class="or-emer-btn${orSt==='emergency'?' active':''}" onclick="toggleORStatus('${p.id}','emergency')">🚨 Emer</button>
+      </div>
       <div class="pt-header-left">
         <span class="pt-num">${idx+1}.</span>
         <div class="pt-avatar">${initials(p.name)}</div>
