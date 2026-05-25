@@ -353,13 +353,13 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
       <button class="handover-btn" onclick="toggleHandover()">📋 ส่งเวร</button>
       <div class="handover-area" id="handover-area" style="display:none">
         <div class="handover-ward-label" id="handover-ward-label">Ward A — บันทึกส่งเวร</div>
-        <textarea class="handover-ta" id="handover-ta" placeholder="พิมพ์บันทึกส่งเวร..." oninput="onHandoverInput(this)"></textarea>
+        <textarea class="handover-ta" id="handover-ta" placeholder="พิมพ์บันทึกส่งเวร..." oninput="onHandoverInput(this);autoResize(this)"></textarea>
         <div class="handover-saving" id="handover-saving"></div>
       </div>
       <button class="handover-misc-btn" onclick="toggleHandoverMisc()">📝 ส่งเวร Misc</button>
       <div class="handover-area" id="handover-misc-area" style="display:none">
         <div class="handover-misc-label">Misc — ทุก Ward</div>
-        <textarea class="handover-ta" id="handover-misc-ta" placeholder="พิมพ์บันทึก Misc..." oninput="onHandoverMiscInput(this)"></textarea>
+        <textarea class="handover-ta" id="handover-misc-ta" placeholder="พิมพ์บันทึก Misc..." oninput="onHandoverMiscInput(this);autoResize(this)"></textarea>
         <div class="handover-saving" id="handover-misc-saving"></div>
       </div>
     </div>
@@ -910,6 +910,8 @@ function renderHandover(){
   if(ta&&document.activeElement!==ta){ta.value=handoverNotes[activeWard]||'';requestAnimationFrame(()=>autoResize(ta));}
   if(lbl)lbl.textContent='Ward '+activeWard.toUpperCase()+' — บันทึกส่งเวร';
 }
+
+function autoResize(ta){ta.style.height='auto';ta.style.height=ta.scrollHeight+'px';}
 
 function toggleHandover(){
   handoverOpen=!handoverOpen;
