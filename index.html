@@ -161,6 +161,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .pt-actions{display:flex;gap:8px;margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border);}
 .discharge-btn{flex:1;background:var(--green-dim);border:0.5px solid rgba(110,231,183,0.3);border-radius:var(--radius-sm);color:var(--green);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:8px 4px;cursor:pointer;transition:all .2s;}
 .move-btn{flex:1;background:var(--purple-dim);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--purple);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:8px 4px;cursor:pointer;transition:all .2s;}
+.clear-done-btn{flex:1;background:var(--red-dim);border:0.5px solid rgba(255,107,107,0.3);border-radius:var(--radius-sm);color:var(--red);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:8px 4px;cursor:pointer;transition:all .2s;}
 .pt-block.discharged{border-color:rgba(110,231,183,0.5);background:rgba(110,231,183,0.04);}
 .pt-block.discharged .pt-name{color:var(--green);}
 .pt-block.discharged .pt-avatar{background:var(--green-dim);border-color:rgba(110,231,183,0.35);color:var(--green);}
@@ -569,7 +570,8 @@ function buildPatientCard(p,idx){
           ?`<div style="font-size:12px;color:var(--green);flex:1;padding:2px 0;">🏁 Auto-remove in ${formatCountdown(dcRemaining)}</div>
             <button class="cancel-dc-btn" onclick="cancelDischarge('${p.id}')">✕ Cancel Discharge</button>`
           :`${sec==='ward'?`<button class="discharge-btn" onclick="dischargePatient('${p.id}')">🏁 Discharge</button>`:''}
-            <button class="move-btn" onclick="toggleMovePicker('${p.id}')">↗ ย้ายสาย</button>`
+            <button class="move-btn" onclick="toggleMovePicker('${p.id}')">↗ ย้ายสาย</button>
+            ${p.tasks.some(t=>t.done)?`<button class="clear-done-btn" onclick="clearDoneTasks('${p.id}')">🗑 ล้าง ✓</button>`:''}`
         }
       </div>
       ${!isDc?`<div class="move-picker" id="move-picker-${p.id}" style="display:none">
@@ -1068,6 +1070,14 @@ async function toggleTask(pid,tid){
 
 async function delTask(pid,tid){
   await sb.from('tasks').delete().eq('id',tid);
+  await loadAll();
+}
+
+async function clearDoneTasks(pid){
+  const p=patients.find(x=>x.id===pid);if(!p)return;
+  const doneIds=p.tasks.filter(t=>t.done).map(t=>t.id);
+  if(!doneIds.length)return;
+  await sb.from('tasks').delete().in('id',doneIds);
   await loadAll();
 }
 
