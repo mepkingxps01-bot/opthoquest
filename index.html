@@ -129,25 +129,24 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .tab:hover:not(.active){background:var(--tab-hover-bg);color:var(--tab-hover-color);}
 
 .pt-block{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;}
-.pt-block-header{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;transition:background .15s;}
-.pt-block-header:hover{background:var(--card-hover);}
-.pt-header-left{display:flex;align-items:center;gap:10px;}
-.pt-num{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--text3);min-width:18px;}
-.pt-avatar{width:32px;height:32px;border-radius:9px;background:var(--purple-dim);border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--purple);flex-shrink:0;}
-.pt-name{font-size:14px;font-weight:500;color:var(--text);}
-.pt-sub{font-size:11px;color:var(--text3);margin-top:1px;}
-.pt-header-right{display:flex;align-items:center;gap:8px;}
-.badge{font-size:11px;font-weight:500;padding:3px 9px;border-radius:99px;}
+.pt-card-grid{display:flex;align-items:stretch;}
+.pt-left{width:40%;min-width:0;padding:12px 10px 12px 14px;border-right:0.5px solid var(--border);display:flex;flex-direction:column;gap:8px;}
+.pt-right{flex:1;min-width:0;padding:10px 12px 10px 10px;}
+.pt-left-info{display:flex;align-items:flex-start;gap:7px;}
+.pt-left-name{min-width:0;flex:1;}
+.pt-left-foot{display:flex;align-items:center;gap:4px;margin-top:auto;padding-top:4px;}
+.or-status-btns-h{display:flex;gap:3px;}
+.pt-num{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--text3);min-width:16px;padding-top:2px;}
+.pt-avatar{width:30px;height:30px;border-radius:8px;background:var(--purple-dim);border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--purple);flex-shrink:0;}
+.pt-name{font-size:13px;font-weight:500;color:var(--text);line-height:1.3;word-break:break-word;}
+.pt-sub{font-size:10px;color:var(--text3);margin-top:1px;}
+.badge{font-size:10px;font-weight:500;padding:2px 8px;border-radius:99px;}
 .badge-done{background:var(--green-dim);color:var(--green);}
 .badge-pending{background:var(--bg2);color:var(--text3);}
 .badge-prog{background:var(--purple-dim);color:var(--purple);}
-.chevron{font-size:16px;color:var(--text3);transition:transform .2s;line-height:1;}
-.chevron.open{transform:rotate(180deg);}
 .del-pt-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:3px 5px;border-radius:5px;transition:color .15s;}
 .del-pt-btn:hover{color:var(--red);background:var(--red-dim);}
-.pt-block-body{padding:0 16px 14px;border-top:0.5px solid var(--border);display:none;}
-.pt-block-body.open{display:block;}
-.pt-prog{height:2px;background:var(--bg2);border-radius:99px;margin:10px 0 12px;overflow:hidden;}
+.pt-prog{height:2px;background:var(--bg2);border-radius:99px;margin:0 0 8px;overflow:hidden;}
 .pt-prog-fill{height:100%;background:linear-gradient(90deg,var(--teal),#4ec9b0);transition:width .4s;}
 
 .task-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:0.5px solid var(--border);}
@@ -177,17 +176,19 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .pt-block.discharged{border-color:rgba(110,231,183,0.5);background:rgba(110,231,183,0.04);}
 .pt-block.discharged .pt-name{color:var(--green);}
 .pt-block.discharged .pt-avatar{background:var(--green-dim);border-color:rgba(110,231,183,0.35);color:var(--green);}
-.pt-block.or-status-scheduled{border-color:rgba(37,99,235,0.5);border-left:3px solid #2563eb;}
-.pt-block.or-status-emergency{border-color:rgba(220,38,38,0.5);border-left:3px solid #dc2626;}
+.pt-block.or-status-wait-or{border-color:rgba(37,99,235,0.5);border-left:3px solid #2563eb;}
+.pt-block.or-status-emer-or{border-color:rgba(220,38,38,0.5);border-left:3px solid #dc2626;}
+.pt-block.or-status-post-op{border-color:rgba(16,185,129,0.5);border-left:3px solid #10b981;}
 .badge-dc{background:var(--green-dim);color:var(--green);}
 .move-picker{display:flex;align-items:center;gap:5px;margin-top:8px;flex-wrap:wrap;}
 .move-picker-label{font-size:11px;color:var(--text3);}
-.or-status-btns{display:flex;flex-direction:column;gap:4px;align-items:center;padding-right:10px;flex-shrink:0;}
-.or-sched-btn,.or-emer-btn{font-size:11px;line-height:1.3;padding:6px 8px;border-radius:7px;border:1.5px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;text-align:center;min-width:52px;font-family:'DM Sans',sans-serif;font-weight:500;transition:all .15s;}
+.or-sched-btn,.or-emer-btn,.or-postop-btn{font-size:10px;line-height:1.3;padding:5px 3px;border-radius:7px;border:1.5px solid var(--border2);background:transparent;color:var(--text3);cursor:pointer;text-align:center;font-family:'DM Sans',sans-serif;font-weight:500;transition:all .15s;flex:1;}
 .or-sched-btn:hover{border-color:#2563eb;color:#2563eb;background:rgba(37,99,235,0.07);}
 .or-emer-btn:hover{border-color:#dc2626;color:#dc2626;background:rgba(220,38,38,0.07);}
+.or-postop-btn:hover{border-color:#10b981;color:#10b981;background:rgba(16,185,129,0.07);}
 .or-sched-btn.active{background:rgba(37,99,235,0.15);border-color:#2563eb;color:#2563eb;font-weight:700;}
 .or-emer-btn.active{background:rgba(220,38,38,0.15);border-color:#dc2626;color:#dc2626;font-weight:700;}
+.or-postop-btn.active{background:rgba(16,185,129,0.15);border-color:#10b981;color:#10b981;font-weight:700;}
 .cancel-dc-btn{background:var(--red-dim);border:0.5px solid rgba(255,112,112,0.3);border-radius:var(--radius-sm);color:var(--red);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;padding:6px 10px;cursor:pointer;transition:all .2s;white-space:nowrap;}
 
 .admit-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:18px;margin-bottom:14px;}
@@ -247,7 +248,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .handover-btn:active{transform:scale(.98);}
 .handover-area{margin-top:12px;animation:fadeIn .2s ease;}
 .handover-ward-label{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--purple);margin-bottom:8px;}
-.handover-ta{width:100%;background:var(--card);border:0.5px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.7;padding:14px;outline:none;resize:vertical;min-height:160px;overflow-y:auto;transition:border-color .15s;}
+.handover-ta{width:100%;background:var(--card);border:0.5px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.7;padding:14px;outline:none;resize:none;min-height:160px;overflow-y:hidden;transition:border-color .15s;box-sizing:border-box;}
 .handover-ta:focus{border-color:var(--purple);}
 .handover-ta::placeholder{color:var(--text3);}
 .handover-saving{font-size:10px;color:var(--text3);text-align:right;margin-top:5px;min-height:14px;transition:opacity .2s;}
@@ -528,7 +529,42 @@ function renderStaffSubSections(pts,secKey){
 }
 let orStatusMap = JSON.parse(localStorage.getItem('wq_or_status')||'{}');
 function saveORStatusMap(){localStorage.setItem('wq_or_status',JSON.stringify(orStatusMap));}
-function getORStatus(pid){return orStatusMap[pid]||null;}
+function getORStatus(pid){
+  const v=orStatusMap[pid]||null;
+  if(v==='scheduled')return 'wait-or';
+  if(v==='emergency')return 'emer-or';
+  return v;
+}
+const OR_STATUS_ORDER=[
+  {key:'emer-or', label:'🚨 Emergency OR', bg:'rgba(220,38,38,0.08)',  border:'rgba(220,38,38,0.35)',  color:'#dc2626'},
+  {key:'wait-or', label:'🗓 Wait for OR',  bg:'rgba(37,99,235,0.08)',  border:'rgba(37,99,235,0.35)',  color:'#2563eb'},
+  {key:'post-op', label:'✅ Post-Op',       bg:'rgba(16,185,129,0.08)', border:'rgba(16,185,129,0.35)', color:'#10b981'},
+];
+function renderORStatusGroups(pts, secBase){
+  let html='';
+  OR_STATUS_ORDER.forEach(({key,label,bg,border,color})=>{
+    const grpPts=pts.filter(p=>getORStatus(p.id)===key);
+    if(!grpPts.length)return;
+    const colKey=secBase+'-'+key;
+    const isCol=!!staffSectionCollapsed[colKey];
+    html+=`<div class="staff-sub-hdr" style="background:${bg};border:0.5px solid ${border};" onclick="toggleStaffSubSection('${colKey}')">
+      <span class="staff-sub-title" style="color:${color};">${label}</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span class="ward-count">${grpPts.length}</span><span class="section-chevron" id="schev-${colKey}" style="color:${color};transform:${isCol?'rotate(-90deg)':'rotate(0deg)'}">▾</span></span>
+    </div>
+    <div class="section-body${isCol?' collapsed':''}" id="sbody-${colKey}">${renderStaffSubSections(grpPts,colKey)}</div>`;
+  });
+  const noStatus=pts.filter(p=>!getORStatus(p.id));
+  if(noStatus.length){
+    const colKey=secBase+'-none';
+    const isCol=!!staffSectionCollapsed[colKey];
+    html+=`<div class="staff-sub-hdr" style="background:var(--bg2);border:0.5px solid var(--border);" onclick="toggleStaffSubSection('${colKey}')">
+      <span class="staff-sub-title" style="color:var(--text3);">📋 No Status</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span class="ward-count">${noStatus.length}</span><span class="section-chevron" id="schev-${colKey}" style="transform:${isCol?'rotate(-90deg)':'rotate(0deg)'}">▾</span></span>
+    </div>
+    <div class="section-body${isCol?' collapsed':''}" id="sbody-${colKey}">${renderStaffSubSections(noStatus,colKey)}</div>`;
+  }
+  return html||'<div class="empty" style="padding:1rem 0;font-size:12px;">No patients.</div>';
+}
 async function toggleORStatus(pid,type){
   const next=getORStatus(pid)===type?null:type;
   orStatusMap[pid]=next;
@@ -613,64 +649,68 @@ function buildPatientCard(p,idx){
   const staff=getStaff(p.id);
   const staffSt=staff?STAFF_STYLE[staff]:null;
   return `<div class="pt-block${isDc?' discharged':''}${orSt&&isWard?' or-status-'+orSt:''}">
-    <div class="pt-block-header" onclick="togglePt('${p.id}')">
-      ${isWard?`<div class="or-status-btns" onclick="event.stopPropagation()">
-        <button class="or-sched-btn${orSt==='scheduled'?' active':''}" onclick="toggleORStatus('${p.id}','scheduled')">🗓 ตาม<br>ตาราง</button>
-        <button class="or-emer-btn${orSt==='emergency'?' active':''}" onclick="toggleORStatus('${p.id}','emergency')">🚨 Emer</button>
-      </div>`:'<div style="width:4px;flex-shrink:0;"></div>'}
-      <div class="pt-header-left">
-        <span class="pt-num">${idx+1}.</span>
-        <div class="pt-avatar">${initials(p.name)}</div>
-        <div>
-          <div class="pt-name">${esc(p.name)}${staffSt?`<span class="staff-badge" style="background:${staffSt.bg};color:${staffSt.color};border:0.5px solid ${staffSt.border};">${staff}</span>`:''}</div>
-          <div class="pt-sub">${total?done+'/'+total+' tasks':'No tasks'}</div>
+    <div class="pt-card-grid">
+      <div class="pt-left">
+        <div class="pt-left-info">
+          <span class="pt-num">${idx+1}.</span>
+          <div class="pt-avatar">${initials(p.name)}</div>
+          <div class="pt-left-name">
+            <div class="pt-name">${esc(p.name)}</div>
+            ${staffSt?`<span class="staff-badge" style="background:${staffSt.bg};color:${staffSt.color};border:0.5px solid ${staffSt.border};">${staff}</span>`:''}
+            <div class="pt-sub">${total?done+'/'+total+' tasks':'No tasks'}</div>
+          </div>
+        </div>
+        ${isWard?`<div class="or-status-btns-h">
+          <button class="or-sched-btn${orSt==='wait-or'?' active':''}" onclick="toggleORStatus('${p.id}','wait-or')">🗓 Wait</button>
+          <button class="or-emer-btn${orSt==='emer-or'?' active':''}" onclick="toggleORStatus('${p.id}','emer-or')">🚨 Emer</button>
+          <button class="or-postop-btn${orSt==='post-op'?' active':''}" onclick="toggleORStatus('${p.id}','post-op')">✅ Post</button>
+        </div>`:''}
+        <div class="pt-left-foot">
+          ${isDc?`<span class="badge badge-dc">🏁 ${formatCountdown(dcRemaining)}</span>`:`<span class="badge ${bc}">${bt}</span>`}
+          <div style="flex:1"></div>
+          <button class="edit-pt-btn" onclick="editPatientName('${p.id}','${esc(p.name)}')">✏️</button>
+          <button class="del-pt-btn" onclick="delPatient('${p.id}')">✕</button>
         </div>
       </div>
-      <div class="pt-header-right">
-        ${isDc?`<span class="badge badge-dc">🏁 ${formatCountdown(dcRemaining)}</span>`:`<span class="badge ${bc}">${bt}</span>`}
-        <button class="edit-pt-btn" onclick="event.stopPropagation();editPatientName('${p.id}','${esc(p.name)}')">✏️</button>
-        <button class="del-pt-btn" onclick="event.stopPropagation();delPatient('${p.id}')">✕</button>
-        <span class="chevron ${p.open?'open':''}">⌄</span>
-      </div>
-    </div>
-    <div class="pt-block-body ${p.open?'open':''}">
-      ${total>0?`<div class="pt-prog"><div class="pt-prog-fill" style="width:${pct}%"></div></div>`:''}
-      ${p.tasks.map(t=>`
-        <div class="task-item">
-          <button class="check-btn ${t.done?'done':''}" onclick="toggleTask('${p.id}','${t.id}')">
-            <svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
-          </button>
-          <span class="task-text ${t.done?'done':''}">${esc(t.text)}</span>
-          <span class="task-xp">+1 XP</span>
-          <button class="del-btn" onclick="delTask('${p.id}','${t.id}')">✕</button>
+      <div class="pt-right">
+        ${total>0?`<div class="pt-prog"><div class="pt-prog-fill" style="width:${pct}%"></div></div>`:''}
+        ${p.tasks.map(t=>`
+          <div class="task-item">
+            <button class="check-btn ${t.done?'done':''}" onclick="toggleTask('${p.id}','${t.id}')">
+              <svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
+            </button>
+            <span class="task-text ${t.done?'done':''}">${esc(t.text)}</span>
+            <span class="task-xp">+1 XP</span>
+            <button class="del-btn" onclick="delTask('${p.id}','${t.id}')">✕</button>
+          </div>
+        `).join('')}
+        ${!total?'<div style="font-size:12px;color:var(--text3);padding:4px 0 2px;">No tasks yet.</div>':''}
+        <div class="add-row">
+          <input class="add-input" id="ti-${p.id}" placeholder="Add task..." onkeydown="if(event.key==='Enter')addTask('${p.id}')" />
+          <button class="add-btn" onclick="addTask('${p.id}')">+</button>
         </div>
-      `).join('')}
-      ${!total?'<div style="font-size:12px;color:var(--text3);padding:6px 0 4px;">No tasks yet.</div>':''}
-      <div class="add-row">
-        <input class="add-input" id="ti-${p.id}" placeholder="Add task..." onkeydown="if(event.key==='Enter')addTask('${p.id}')" />
-        <button class="add-btn" onclick="addTask('${p.id}')">+ Add</button>
+        <div class="pt-actions">
+          ${isDc
+            ?`<div style="font-size:11px;color:var(--green);flex:1;padding:2px 0;">🏁 Auto-remove in ${formatCountdown(dcRemaining)}</div>
+              <button class="cancel-dc-btn" onclick="cancelDischarge('${p.id}')">✕ Cancel</button>`
+            :`${sec==='ward'?`<button class="discharge-btn" onclick="dischargePatient('${p.id}')">🏁 DC</button>`:''}
+              <button class="move-btn" onclick="toggleMovePicker('${p.id}')">↗ ย้าย</button>
+              ${p.tasks.some(t=>t.done)?`<button class="clear-done-btn" onclick="clearDoneTasks('${p.id}')">🗑</button>`:''}
+              <button class="staff-assign-btn" onclick="event.stopPropagation();toggleStaffPicker('${p.id}')">${staffSt?`<span style="color:${staffSt.color};">👤 ${staff}</span>`:'👤'}</button>`
+          }
+        </div>
+        ${!isDc?`<div class="move-picker" id="move-picker-${p.id}" style="display:none">
+          <span class="move-picker-label">Move to</span>
+          ${['a','b','c','d'].map(w=>`<button class="menu-btn${(p.ward||'a')===w?' active':''}" onclick="movePatient('${p.id}','${w}')">${w.toUpperCase()}</button>`).join('')}
+        </div>
+        <div class="staff-pick-wrap" id="staff-picker-${p.id}" style="display:none;">
+          ${STAFF.map(s=>{const st=STAFF_STYLE[s];const active=getStaff(p.id)===s;return `<button class="staff-pick-btn" style="color:${active?'#fff':st.color};border-color:${st.border};background:${active?st.color:'transparent'};" onclick="setStaff('${p.id}','${s}')">${s}</button>`;}).join('')}
+          ${getStaff(p.id)?`<button class="staff-pick-btn" style="color:var(--text3);border-color:var(--border);" onclick="setStaff('${p.id}','${getStaff(p.id)}')">✕ None</button>`:''}
+        </div>`:''}
+        <button class="relocate-btn" onclick="relocatePatient('${p.id}')">
+          ${sec==='ward'?'↓ Non-Ward':'↑ Ward'}
+        </button>
       </div>
-      <div class="pt-actions">
-        ${isDc
-          ?`<div style="font-size:12px;color:var(--green);flex:1;padding:2px 0;">🏁 Auto-remove in ${formatCountdown(dcRemaining)}</div>
-            <button class="cancel-dc-btn" onclick="cancelDischarge('${p.id}')">✕ Cancel Discharge</button>`
-          :`${sec==='ward'?`<button class="discharge-btn" onclick="dischargePatient('${p.id}')">🏁 Discharge</button>`:''}
-            <button class="move-btn" onclick="toggleMovePicker('${p.id}')">↗ ย้ายสาย</button>
-            ${p.tasks.some(t=>t.done)?`<button class="clear-done-btn" onclick="clearDoneTasks('${p.id}')">🗑 ล้าง ✓</button>`:''}
-            <button class="staff-assign-btn" onclick="event.stopPropagation();toggleStaffPicker('${p.id}')" title="Assign staff">${staffSt?`<span style="color:${staffSt.color};">👤 ${staff}</span>`:'👤'}</button>`
-        }
-      </div>
-      ${!isDc?`<div class="move-picker" id="move-picker-${p.id}" style="display:none">
-        <span class="move-picker-label">Move to</span>
-        ${['a','b','c','d'].map(w=>`<button class="menu-btn${(p.ward||'a')===w?' active':''}" onclick="movePatient('${p.id}','${w}')">${w.toUpperCase()}</button>`).join('')}
-      </div>
-      <div class="staff-pick-wrap" id="staff-picker-${p.id}" style="display:none;">
-        ${STAFF.map(s=>{const st=STAFF_STYLE[s];const active=getStaff(p.id)===s;return `<button class="staff-pick-btn" style="color:${active?'#fff':st.color};border-color:${st.border};background:${active?st.color:'transparent'};" onclick="setStaff('${p.id}','${s}')">${s}</button>`;}).join('')}
-        ${getStaff(p.id)?`<button class="staff-pick-btn" style="color:var(--text3);border-color:var(--border);" onclick="setStaff('${p.id}','${getStaff(p.id)}')">✕ None</button>`:''}
-      </div>`:''}
-      <button class="relocate-btn" onclick="relocatePatient('${p.id}')">
-        ${sec==='ward'?'↓ Move to Non-Ward Section':'↑ Move to Ward Section'}
-      </button>
     </div>
   </div>`;
 }
@@ -689,7 +729,7 @@ function renderWard(){
   list.innerHTML=header
     +`<div class="section-header ward-hdr" onclick="toggleSectionCollapse('ward')"><span class="section-title">🏥 Ward Section</span><span style="display:flex;align-items:center;gap:6px;"><span class="ward-count">${inWard.length} patient${inWard.length!==1?'s':''}</span><span class="section-chevron" id="section-chevron-ward" style="transform:${sectionCollapsed.ward?'rotate(-90deg)':'rotate(0deg)'}">▾</span></span></div>`
     +`<div class="section-body${sectionCollapsed.ward?' collapsed':''}" id="section-body-ward">`
-    +(inWard.length?renderStaffSubSections(inWard,'ward'):'<div class="empty" style="padding:1rem 0;font-size:12px;">No patients in ward section.</div>')
+    +(inWard.length?renderORStatusGroups(inWard,'ward'):'<div class="empty" style="padding:1rem 0;font-size:12px;">No patients in ward section.</div>')
     +`</div>`
     +`<div class="section-divider"></div>`
     +`<div class="section-header nonward-hdr" onclick="toggleSectionCollapse('nonward')"><span class="section-title">📋 Non-Ward Section</span><span style="display:flex;align-items:center;gap:6px;"><span class="ward-count">${inNonWard.length} item${inNonWard.length!==1?'s':''}</span><span class="section-chevron" id="section-chevron-nonward" style="transform:${sectionCollapsed.nonward?'rotate(-90deg)':'rotate(0deg)'}">▾</span></span></div>`
@@ -860,10 +900,12 @@ async function resetWardXP(){
 
 // ── Handover helpers ──────────────────────────────────────────
 
+function autoResize(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+
 function renderHandover(){
   const ta=document.getElementById('handover-ta');
   const lbl=document.getElementById('handover-ward-label');
-  if(ta&&document.activeElement!==ta)ta.value=handoverNotes[activeWard]||'';
+  if(ta&&document.activeElement!==ta){ta.value=handoverNotes[activeWard]||'';requestAnimationFrame(()=>autoResize(ta));}
   if(lbl)lbl.textContent='Ward '+activeWard.toUpperCase()+' — บันทึกส่งเวร';
 }
 
@@ -874,6 +916,7 @@ function toggleHandover(){
   if(handoverOpen){
     const ta=document.getElementById('handover-ta');
     if(ta&&document.activeElement!==ta)ta.value=handoverNotes[activeWard]||'';
+    if(ta)requestAnimationFrame(()=>autoResize(ta));
   }
 }
 
@@ -884,10 +927,12 @@ function toggleHandoverMisc(){
   if(handoverMiscOpen){
     const ta=document.getElementById('handover-misc-ta');
     if(ta&&document.activeElement!==ta)ta.value=handoverMiscNote;
+    if(ta)requestAnimationFrame(()=>autoResize(ta));
   }
 }
 
 function onHandoverInput(el){
+  autoResize(el);
   handoverNotes[activeWard]=el.value;
   const saving=document.getElementById('handover-saving');
   if(saving)saving.textContent='กำลังบันทึก...';
@@ -902,6 +947,7 @@ async function saveHandoverNote(ward,text){
 }
 
 function onHandoverMiscInput(el){
+  autoResize(el);
   handoverMiscNote=el.value;
   const saving=document.getElementById('handover-misc-saving');
   if(saving)saving.textContent='กำลังบันทึก...';
