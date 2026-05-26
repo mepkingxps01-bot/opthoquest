@@ -129,25 +129,25 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .tab:hover:not(.active){background:var(--tab-hover-bg);color:var(--tab-hover-color);}
 
 .pt-block{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);margin-bottom:12px;overflow:hidden;}
-.pt-block-header{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;cursor:pointer;transition:background .15s;}
-.pt-block-header:hover{background:var(--card-hover);}
-.pt-header-left{display:flex;align-items:center;gap:10px;}
-.pt-num{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--text3);min-width:18px;}
-.pt-avatar{width:32px;height:32px;border-radius:9px;background:var(--purple-dim);border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--purple);flex-shrink:0;}
-.pt-name{font-size:14px;font-weight:500;color:var(--text);}
-.pt-sub{font-size:11px;color:var(--text3);margin-top:1px;}
-.pt-header-right{display:flex;align-items:center;gap:8px;}
-.badge{font-size:11px;font-weight:500;padding:3px 9px;border-radius:99px;}
+.pt-card-grid{display:flex;align-items:stretch;}
+.pt-left{width:40%;min-width:0;padding:12px 10px 12px 14px;border-right:0.5px solid var(--border);display:flex;flex-direction:column;gap:8px;}
+.pt-right{flex:1;min-width:0;padding:10px 12px 10px 10px;}
+.pt-left-info{display:flex;align-items:flex-start;gap:7px;}
+.pt-left-name{min-width:0;flex:1;}
+.pt-left-foot{display:flex;align-items:center;gap:4px;margin-top:auto;padding-top:4px;}
+.or-status-btns-h{display:flex;gap:4px;}
+.or-status-btns-h .or-sched-btn,.or-status-btns-h .or-emer-btn{flex:1;font-size:10px;line-height:1.3;padding:5px 3px;}
+.pt-num{font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--text3);min-width:16px;padding-top:2px;}
+.pt-avatar{width:30px;height:30px;border-radius:8px;background:var(--purple-dim);border:0.5px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;color:var(--purple);flex-shrink:0;}
+.pt-name{font-size:13px;font-weight:500;color:var(--text);line-height:1.3;word-break:break-word;}
+.pt-sub{font-size:10px;color:var(--text3);margin-top:1px;}
+.badge{font-size:10px;font-weight:500;padding:2px 8px;border-radius:99px;}
 .badge-done{background:var(--green-dim);color:var(--green);}
 .badge-pending{background:var(--bg2);color:var(--text3);}
 .badge-prog{background:var(--purple-dim);color:var(--purple);}
-.chevron{font-size:16px;color:var(--text3);transition:transform .2s;line-height:1;}
-.chevron.open{transform:rotate(180deg);}
 .del-pt-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:3px 5px;border-radius:5px;transition:color .15s;}
 .del-pt-btn:hover{color:var(--red);background:var(--red-dim);}
-.pt-block-body{padding:0 16px 14px;border-top:0.5px solid var(--border);display:none;}
-.pt-block-body.open{display:block;}
-.pt-prog{height:2px;background:var(--bg2);border-radius:99px;margin:10px 0 12px;overflow:hidden;}
+.pt-prog{height:2px;background:var(--bg2);border-radius:99px;margin:0 0 8px;overflow:hidden;}
 .pt-prog-fill{height:100%;background:linear-gradient(90deg,var(--teal),#4ec9b0);transition:width .4s;}
 
 .task-item{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:0.5px solid var(--border);}
@@ -613,64 +613,67 @@ function buildPatientCard(p,idx){
   const staff=getStaff(p.id);
   const staffSt=staff?STAFF_STYLE[staff]:null;
   return `<div class="pt-block${isDc?' discharged':''}${orSt&&isWard?' or-status-'+orSt:''}">
-    <div class="pt-block-header" onclick="togglePt('${p.id}')">
-      ${isWard?`<div class="or-status-btns" onclick="event.stopPropagation()">
-        <button class="or-sched-btn${orSt==='scheduled'?' active':''}" onclick="toggleORStatus('${p.id}','scheduled')">🗓 ตาม<br>ตาราง</button>
-        <button class="or-emer-btn${orSt==='emergency'?' active':''}" onclick="toggleORStatus('${p.id}','emergency')">🚨 Emer</button>
-      </div>`:'<div style="width:4px;flex-shrink:0;"></div>'}
-      <div class="pt-header-left">
-        <span class="pt-num">${idx+1}.</span>
-        <div class="pt-avatar">${initials(p.name)}</div>
-        <div>
-          <div class="pt-name">${esc(p.name)}${staffSt?`<span class="staff-badge" style="background:${staffSt.bg};color:${staffSt.color};border:0.5px solid ${staffSt.border};">${staff}</span>`:''}</div>
-          <div class="pt-sub">${total?done+'/'+total+' tasks':'No tasks'}</div>
+    <div class="pt-card-grid">
+      <div class="pt-left">
+        <div class="pt-left-info">
+          <span class="pt-num">${idx+1}.</span>
+          <div class="pt-avatar">${initials(p.name)}</div>
+          <div class="pt-left-name">
+            <div class="pt-name">${esc(p.name)}</div>
+            ${staffSt?`<span class="staff-badge" style="background:${staffSt.bg};color:${staffSt.color};border:0.5px solid ${staffSt.border};">${staff}</span>`:''}
+            <div class="pt-sub">${total?done+'/'+total+' tasks':'No tasks'}</div>
+          </div>
+        </div>
+        ${isWard?`<div class="or-status-btns-h">
+          <button class="or-sched-btn${orSt==='scheduled'?' active':''}" onclick="toggleORStatus('${p.id}','scheduled')">🗓 ตาม</button>
+          <button class="or-emer-btn${orSt==='emergency'?' active':''}" onclick="toggleORStatus('${p.id}','emergency')">🚨 Emer</button>
+        </div>`:''}
+        <div class="pt-left-foot">
+          ${isDc?`<span class="badge badge-dc">🏁 ${formatCountdown(dcRemaining)}</span>`:`<span class="badge ${bc}">${bt}</span>`}
+          <div style="flex:1"></div>
+          <button class="edit-pt-btn" onclick="editPatientName('${p.id}','${esc(p.name)}')">✏️</button>
+          <button class="del-pt-btn" onclick="delPatient('${p.id}')">✕</button>
         </div>
       </div>
-      <div class="pt-header-right">
-        ${isDc?`<span class="badge badge-dc">🏁 ${formatCountdown(dcRemaining)}</span>`:`<span class="badge ${bc}">${bt}</span>`}
-        <button class="edit-pt-btn" onclick="event.stopPropagation();editPatientName('${p.id}','${esc(p.name)}')">✏️</button>
-        <button class="del-pt-btn" onclick="event.stopPropagation();delPatient('${p.id}')">✕</button>
-        <span class="chevron ${p.open?'open':''}">⌄</span>
-      </div>
-    </div>
-    <div class="pt-block-body ${p.open?'open':''}">
-      ${total>0?`<div class="pt-prog"><div class="pt-prog-fill" style="width:${pct}%"></div></div>`:''}
-      ${p.tasks.map(t=>`
-        <div class="task-item">
-          <button class="check-btn ${t.done?'done':''}" onclick="toggleTask('${p.id}','${t.id}')">
-            <svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
-          </button>
-          <span class="task-text ${t.done?'done':''}">${esc(t.text)}</span>
-          <span class="task-xp">+1 XP</span>
-          <button class="del-btn" onclick="delTask('${p.id}','${t.id}')">✕</button>
+      <div class="pt-right">
+        ${total>0?`<div class="pt-prog"><div class="pt-prog-fill" style="width:${pct}%"></div></div>`:''}
+        ${p.tasks.map(t=>`
+          <div class="task-item">
+            <button class="check-btn ${t.done?'done':''}" onclick="toggleTask('${p.id}','${t.id}')">
+              <svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg>
+            </button>
+            <span class="task-text ${t.done?'done':''}">${esc(t.text)}</span>
+            <span class="task-xp">+1 XP</span>
+            <button class="del-btn" onclick="delTask('${p.id}','${t.id}')">✕</button>
+          </div>
+        `).join('')}
+        ${!total?'<div style="font-size:12px;color:var(--text3);padding:4px 0 2px;">No tasks yet.</div>':''}
+        <div class="add-row">
+          <input class="add-input" id="ti-${p.id}" placeholder="Add task..." onkeydown="if(event.key==='Enter')addTask('${p.id}')" />
+          <button class="add-btn" onclick="addTask('${p.id}')">+</button>
         </div>
-      `).join('')}
-      ${!total?'<div style="font-size:12px;color:var(--text3);padding:6px 0 4px;">No tasks yet.</div>':''}
-      <div class="add-row">
-        <input class="add-input" id="ti-${p.id}" placeholder="Add task..." onkeydown="if(event.key==='Enter')addTask('${p.id}')" />
-        <button class="add-btn" onclick="addTask('${p.id}')">+ Add</button>
+        <div class="pt-actions">
+          ${isDc
+            ?`<div style="font-size:11px;color:var(--green);flex:1;padding:2px 0;">🏁 Auto-remove in ${formatCountdown(dcRemaining)}</div>
+              <button class="cancel-dc-btn" onclick="cancelDischarge('${p.id}')">✕ Cancel</button>`
+            :`${sec==='ward'?`<button class="discharge-btn" onclick="dischargePatient('${p.id}')">🏁 DC</button>`:''}
+              <button class="move-btn" onclick="toggleMovePicker('${p.id}')">↗ ย้าย</button>
+              ${p.tasks.some(t=>t.done)?`<button class="clear-done-btn" onclick="clearDoneTasks('${p.id}')">🗑</button>`:''}
+              <button class="staff-assign-btn" onclick="event.stopPropagation();toggleStaffPicker('${p.id}')">${staffSt?`<span style="color:${staffSt.color};">👤 ${staff}</span>`:'👤'}</button>`
+          }
+        </div>
+        ${!isDc?`<div class="move-picker" id="move-picker-${p.id}" style="display:none">
+          <span class="move-picker-label">Move to</span>
+          ${['a','b','c','d'].map(w=>`<button class="menu-btn${(p.ward||'a')===w?' active':''}" onclick="movePatient('${p.id}','${w}')">${w.toUpperCase()}</button>`).join('')}
+        </div>
+        <div class="staff-pick-wrap" id="staff-picker-${p.id}" style="display:none;">
+          ${STAFF.map(s=>{const st=STAFF_STYLE[s];const active=getStaff(p.id)===s;return `<button class="staff-pick-btn" style="color:${active?'#fff':st.color};border-color:${st.border};background:${active?st.color:'transparent'};" onclick="setStaff('${p.id}','${s}')">${s}</button>`;}).join('')}
+          ${getStaff(p.id)?`<button class="staff-pick-btn" style="color:var(--text3);border-color:var(--border);" onclick="setStaff('${p.id}','${getStaff(p.id)}')">✕ None</button>`:''}
+        </div>`:''}
+        <button class="relocate-btn" onclick="relocatePatient('${p.id}')">
+          ${sec==='ward'?'↓ Non-Ward':'↑ Ward'}
+        </button>
       </div>
-      <div class="pt-actions">
-        ${isDc
-          ?`<div style="font-size:12px;color:var(--green);flex:1;padding:2px 0;">🏁 Auto-remove in ${formatCountdown(dcRemaining)}</div>
-            <button class="cancel-dc-btn" onclick="cancelDischarge('${p.id}')">✕ Cancel Discharge</button>`
-          :`${sec==='ward'?`<button class="discharge-btn" onclick="dischargePatient('${p.id}')">🏁 Discharge</button>`:''}
-            <button class="move-btn" onclick="toggleMovePicker('${p.id}')">↗ ย้ายสาย</button>
-            ${p.tasks.some(t=>t.done)?`<button class="clear-done-btn" onclick="clearDoneTasks('${p.id}')">🗑 ล้าง ✓</button>`:''}
-            <button class="staff-assign-btn" onclick="event.stopPropagation();toggleStaffPicker('${p.id}')" title="Assign staff">${staffSt?`<span style="color:${staffSt.color};">👤 ${staff}</span>`:'👤'}</button>`
-        }
-      </div>
-      ${!isDc?`<div class="move-picker" id="move-picker-${p.id}" style="display:none">
-        <span class="move-picker-label">Move to</span>
-        ${['a','b','c','d'].map(w=>`<button class="menu-btn${(p.ward||'a')===w?' active':''}" onclick="movePatient('${p.id}','${w}')">${w.toUpperCase()}</button>`).join('')}
-      </div>
-      <div class="staff-pick-wrap" id="staff-picker-${p.id}" style="display:none;">
-        ${STAFF.map(s=>{const st=STAFF_STYLE[s];const active=getStaff(p.id)===s;return `<button class="staff-pick-btn" style="color:${active?'#fff':st.color};border-color:${st.border};background:${active?st.color:'transparent'};" onclick="setStaff('${p.id}','${s}')">${s}</button>`;}).join('')}
-        ${getStaff(p.id)?`<button class="staff-pick-btn" style="color:var(--text3);border-color:var(--border);" onclick="setStaff('${p.id}','${getStaff(p.id)}')">✕ None</button>`:''}
-      </div>`:''}
-      <button class="relocate-btn" onclick="relocatePatient('${p.id}')">
-        ${sec==='ward'?'↓ Move to Non-Ward Section':'↑ Move to Ward Section'}
-      </button>
     </div>
   </div>`;
 }
