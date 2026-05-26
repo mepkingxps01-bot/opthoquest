@@ -485,7 +485,8 @@ async function setStaff(pid,name){
   staffMap[pid]=newStaff;
   saveStaffMap();
   renderWard();
-  await sb.from('patients').update({staff:newStaff}).eq('id',pid);
+  const {error}=await sb.from('patients').update({staff:newStaff}).eq('id',pid);
+  if(error){alert('Run this SQL in Supabase to enable realtime staff sync:\nALTER TABLE patients ADD COLUMN IF NOT EXISTS staff text DEFAULT NULL;');}
 }
 function toggleStaffPicker(pid){
   const el=document.getElementById('staff-picker-'+pid);
