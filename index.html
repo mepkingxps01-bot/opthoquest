@@ -865,7 +865,7 @@ function autoResize(el){el.style.height='auto';el.style.height=el.scrollHeight+'
 function renderHandover(){
   const ta=document.getElementById('handover-ta');
   const lbl=document.getElementById('handover-ward-label');
-  if(ta&&document.activeElement!==ta){ta.value=handoverNotes[activeWard]||'';autoResize(ta);}
+  if(ta&&document.activeElement!==ta){ta.value=handoverNotes[activeWard]||'';requestAnimationFrame(()=>autoResize(ta));}
   if(lbl)lbl.textContent='Ward '+activeWard.toUpperCase()+' — บันทึกส่งเวร';
 }
 
@@ -876,7 +876,7 @@ function toggleHandover(){
   if(handoverOpen){
     const ta=document.getElementById('handover-ta');
     if(ta&&document.activeElement!==ta)ta.value=handoverNotes[activeWard]||'';
-    if(ta)autoResize(ta);
+    if(ta)requestAnimationFrame(()=>autoResize(ta));
   }
 }
 
@@ -887,7 +887,7 @@ function toggleHandoverMisc(){
   if(handoverMiscOpen){
     const ta=document.getElementById('handover-misc-ta');
     if(ta&&document.activeElement!==ta)ta.value=handoverMiscNote;
-    if(ta)autoResize(ta);
+    if(ta)requestAnimationFrame(()=>autoResize(ta));
   }
 }
 
