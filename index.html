@@ -247,7 +247,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .handover-btn:active{transform:scale(.98);}
 .handover-area{margin-top:12px;animation:fadeIn .2s ease;}
 .handover-ward-label{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--purple);margin-bottom:8px;}
-.handover-ta{width:100%;background:var(--card);border:0.5px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.7;padding:14px;outline:none;resize:vertical;min-height:160px;overflow-y:auto;transition:border-color .15s;}
+.handover-ta{width:100%;background:var(--card);border:0.5px solid var(--border2);border-radius:var(--radius);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.7;padding:14px;outline:none;resize:none;min-height:160px;overflow-y:hidden;transition:border-color .15s;box-sizing:border-box;}
 .handover-ta:focus{border-color:var(--purple);}
 .handover-ta::placeholder{color:var(--text3);}
 .handover-saving{font-size:10px;color:var(--text3);text-align:right;margin-top:5px;min-height:14px;transition:opacity .2s;}
@@ -860,10 +860,12 @@ async function resetWardXP(){
 
 // ── Handover helpers ──────────────────────────────────────────
 
+function autoResize(el){el.style.height='auto';el.style.height=el.scrollHeight+'px';}
+
 function renderHandover(){
   const ta=document.getElementById('handover-ta');
   const lbl=document.getElementById('handover-ward-label');
-  if(ta&&document.activeElement!==ta)ta.value=handoverNotes[activeWard]||'';
+  if(ta&&document.activeElement!==ta){ta.value=handoverNotes[activeWard]||'';autoResize(ta);}
   if(lbl)lbl.textContent='Ward '+activeWard.toUpperCase()+' — บันทึกส่งเวร';
 }
 
@@ -874,6 +876,7 @@ function toggleHandover(){
   if(handoverOpen){
     const ta=document.getElementById('handover-ta');
     if(ta&&document.activeElement!==ta)ta.value=handoverNotes[activeWard]||'';
+    if(ta)autoResize(ta);
   }
 }
 
@@ -884,10 +887,12 @@ function toggleHandoverMisc(){
   if(handoverMiscOpen){
     const ta=document.getElementById('handover-misc-ta');
     if(ta&&document.activeElement!==ta)ta.value=handoverMiscNote;
+    if(ta)autoResize(ta);
   }
 }
 
 function onHandoverInput(el){
+  autoResize(el);
   handoverNotes[activeWard]=el.value;
   const saving=document.getElementById('handover-saving');
   if(saving)saving.textContent='กำลังบันทึก...';
@@ -902,6 +907,7 @@ async function saveHandoverNote(ward,text){
 }
 
 function onHandoverMiscInput(el){
+  autoResize(el);
   handoverMiscNote=el.value;
   const saving=document.getElementById('handover-misc-saving');
   if(saving)saving.textContent='กำลังบันทึก...';
