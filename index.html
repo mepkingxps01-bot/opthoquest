@@ -1155,7 +1155,9 @@ async function parseAndAdmitOR(){
       const pid=uid();
       const tasks=DEFAULT_ADMIT_TASKS.map(text=>({id:uid(),patient_id:pid,text,done:false}));
       wardMap[pid]=admitTargetWard;saveWardMap();
-      await sb.from('patients').insert({id:pid,name,open:true,ward:admitTargetWard,section:'ward'});
+      const orSt=p.or_status||'wait-or';
+      orStatusMap[pid]=orSt;saveORStatusMap();
+      await sb.from('patients').insert({id:pid,name,open:true,ward:admitTargetWard,section:'ward',or_status:orSt});
       if(tasks.length) await sb.from('tasks').insert(tasks);
       await awardXP(1,'Admitted: '+name,admitTargetWard);
       done++;

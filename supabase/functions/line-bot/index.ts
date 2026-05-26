@@ -11,7 +11,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-async function parseORImage(base64: string, mediaType: string): Promise<{patients:{name:string,hn:string,operation:string}[], debug:string}> {
+async function parseORImage(base64: string, mediaType: string): Promise<{patients:{name:string,hn:string,operation:string,or_status:string}[], debug:string}> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -24,15 +24,23 @@ async function parseORImage(base64: string, mediaType: string): Promise<{patient
       max_tokens: 2048,
       system: `You extract patient rows from Thai hospital OR schedule images.
 Return ONLY a valid JSON array — no markdown fences, no explanation, no extra text.
-Each object must have exactly: "name" (full patient name as shown), "hn" (HN number as string), "operation" (Proposed Op column).
-Example: [{"name":"นายสมชาย ใจดี","hn":"4045398","operation":"Phaco + IOL RE"}]`,
+Each object must have exactly: "name" (full patient name as shown), "hn" (HN number as string), "operation" (Proposed Op column), "or_status" (see rules below).
+
+or_status rules:
+- "emer-or"  → patient is marked emergency/urgent/stat/ด่วน/ฉุกเฉิน, or scheduled outside normal hours as emergency
+- "post-op"  → operation column mentions post-op, follow-up, wound check, dressing, suture removal, or any clearly post-operative procedure
+- "wait-or"  → all other scheduled patients (default)
+
+Example: [{"name":"นายสมชาย ใจดี","hn":"4045398","operation":"Phaco + IOL RE","or_status":"wait-or"}]`,
       messages: [
         {
           role: "user",
           content: [
             { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
             { type: "text", text: `Read every patient row from this OR schedule table. Columns are: Order | Time | Room | Ward | HN | Patient name | Age | Diagnosis | Proposed Op | Surgeon ...
-Extract name (col 6), hn (col 5), operation (col 9) for every row. Skip the header. Return a JSON array only.` }
+Extract name (col 6), hn (col 5), operation (col 9), and or_status for every row.
+Classify or_status as "emer-or" for emergency cases, "post-op" for post-operative procedures, or "wait-or" for all other scheduled patients.
+Skip the header. Return a JSON array only.` }
           ]
         }
       ],
@@ -46,7 +54,10 @@ Extract name (col 6), hn (col 5), operation (col 9) for every row. Skip the head
   const m = claudeText.match(/\[[\s\S]*\]/);
   if (!m) return { patients: [], debug: debugInfo };
   try {
-    return { patients: JSON.parse(m[0]), debug: debugInfo };
+    const parsed = JSON.parse(m[0]);
+    const valid = ['wait-or','emer-or','post-op'];
+    parsed.forEach((p: any) => { if (!valid.includes(p.or_status)) p.or_status = 'wait-or'; });
+    return { patients: parsed, debug: debugInfo };
   } catch {
     return { patients: [], debug: debugInfo };
   }
