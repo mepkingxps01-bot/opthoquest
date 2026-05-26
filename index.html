@@ -64,12 +64,16 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .menu-btn.active{background:var(--purple);color:#fff;box-shadow:0 0 8px rgba(139,124,255,0.4);}
 .menu-btn:hover:not(.active){background:var(--purple-dim);color:var(--text);}
 .section-block{margin-bottom:6px;}
-.section-header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:10px;margin-bottom:6px;}
+.section-header{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:10px;margin-bottom:6px;cursor:pointer;user-select:none;}
 .section-header.ward-hdr{background:var(--gold-dim);border:0.5px solid rgba(200,160,0,0.2);}
 .section-header.nonward-hdr{background:var(--gold-dim);border:0.5px solid rgba(200,160,0,0.2);}
+.section-header:hover{filter:brightness(1.06);}
 .section-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;}
 .section-header.ward-hdr .section-title{color:var(--gold);}
 .section-header.nonward-hdr .section-title{color:var(--gold);}
+.section-chevron{font-size:12px;color:var(--gold);transition:transform .25s;line-height:1;}
+.section-body{overflow:hidden;transition:max-height .3s ease,opacity .25s ease;max-height:9999px;opacity:1;}
+.section-body.collapsed{max-height:0!important;opacity:0;}
 .section-divider{margin:18px 0 4px;border-top:0.5px solid var(--border);}
 .edit-pt-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:3px 5px;border-radius:5px;transition:color .15s;}
 .edit-pt-btn:hover{color:var(--purple);background:var(--purple-dim);}
@@ -449,6 +453,14 @@ function saveDischargeMap(){localStorage.setItem('wq_discharge_map',JSON.stringi
 let sectionMap = JSON.parse(localStorage.getItem('wq_section_map')||'{}');
 function saveSectionMap(){localStorage.setItem('wq_section_map',JSON.stringify(sectionMap));}
 function getSection(pid){return sectionMap[pid]||'ward';}
+let sectionCollapsed={ward:false,nonward:false};
+function toggleSectionCollapse(sec){
+  sectionCollapsed[sec]=!sectionCollapsed[sec];
+  const body=document.getElementById('section-body-'+sec);
+  const chevron=document.getElementById('section-chevron-'+sec);
+  if(body)body.classList.toggle('collapsed',sectionCollapsed[sec]);
+  if(chevron)chevron.style.transform=sectionCollapsed[sec]?'rotate(-90deg)':'rotate(0deg)';
+}
 let orStatusMap = JSON.parse(localStorage.getItem('wq_or_status')||'{}');
 function saveORStatusMap(){localStorage.setItem('wq_or_status',JSON.stringify(orStatusMap));}
 function getORStatus(pid){return orStatusMap[pid]||null;}
@@ -603,11 +615,15 @@ function renderWard(){
   const inWard=wardPts.filter(p=>getSection(p.id)==='ward');
   const inNonWard=wardPts.filter(p=>getSection(p.id)==='nonward');
   list.innerHTML=header
-    +`<div class="section-header ward-hdr"><span class="section-title">🏥 Ward Section</span><span class="ward-count">${inWard.length} patient${inWard.length!==1?'s':''}</span></div>`
+    +`<div class="section-header ward-hdr" onclick="toggleSectionCollapse('ward')"><span class="section-title">🏥 Ward Section</span><span style="display:flex;align-items:center;gap:6px;"><span class="ward-count">${inWard.length} patient${inWard.length!==1?'s':''}</span><span class="section-chevron" id="section-chevron-ward" style="transform:${sectionCollapsed.ward?'rotate(-90deg)':'rotate(0deg)'}">▾</span></span></div>`
+    +`<div class="section-body${sectionCollapsed.ward?' collapsed':''}" id="section-body-ward">`
     +(inWard.length?inWard.map(buildPatientCard).join(''):'<div class="empty" style="padding:1rem 0;font-size:12px;">No patients in ward section.</div>')
+    +`</div>`
     +`<div class="section-divider"></div>`
-    +`<div class="section-header nonward-hdr"><span class="section-title">📋 Non-Ward Section</span><span class="ward-count">${inNonWard.length} item${inNonWard.length!==1?'s':''}</span></div>`
-    +(inNonWard.length?inNonWard.map(buildPatientCard).join(''):'<div class="empty" style="padding:1rem 0;font-size:12px;">No items in non-ward section.</div>');
+    +`<div class="section-header nonward-hdr" onclick="toggleSectionCollapse('nonward')"><span class="section-title">📋 Non-Ward Section</span><span style="display:flex;align-items:center;gap:6px;"><span class="ward-count">${inNonWard.length} item${inNonWard.length!==1?'s':''}</span><span class="section-chevron" id="section-chevron-nonward" style="transform:${sectionCollapsed.nonward?'rotate(-90deg)':'rotate(0deg)'}">▾</span></span></div>`
+    +`<div class="section-body${sectionCollapsed.nonward?' collapsed':''}" id="section-body-nonward">`
+    +(inNonWard.length?inNonWard.map(buildPatientCard).join(''):'<div class="empty" style="padding:1rem 0;font-size:12px;">No items in non-ward section.</div>')
+    +`</div>`;
 }
 
 function dischargePatient(pid){
