@@ -1,0 +1,44 @@
+{
+  "platform": "shopee",
+  "region": "MY",
+  "poll_interval_seconds": 15,
+  "max_quantity": 1,
+  "auto_buy": true,
+  "notifications": {
+    "telegram": {
+      "enabled": false,
+      "bot_token": "YOUR_TELEGRAM_BOT_TOKEN",
+      "chat_id": "YOUR_TELEGRAM_CHAT_ID"
+    },
+    "discord": {
+      "enabled": false,
+      "webhook_url": "YOUR_DISCORD_WEBHOOK_URL"
+    }
+  },
+  "shopee": {
+    "base_url": "https://shopee.com.my",
+    "cookies_file": "shopee_cookies.json",
+    "watchlist": [
+      {
+        "name": "Nike Air Max 90",
+        "shop_id": 123456789,
+        "item_id": 987654321,
+        "model_id": null,
+        "max_price": 500.00
+      }
+    ]
+  },
+  "tiktok": {
+    "base_url": "https://www.tiktok.com",
+    "cookies_file": "tiktok_cookies.json",
+    "watchlist": [
+      {
+        "name": "Limited Edition Hoodie",
+        "product_id": "PRODUCT_ID_HERE",
+        "sku_id": "SKU_ID_HERE",
+        "shop_id": "SHOP_ID_HERE",
+        "max_price": 200.00
+      }
+    ]
+  }
+}
