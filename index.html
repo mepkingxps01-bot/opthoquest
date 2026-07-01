@@ -509,6 +509,10 @@ const DEPT_STYLE={
 let deptMap=JSON.parse(localStorage.getItem('wq_dept_map')||'{}');
 function saveDeptMap(){localStorage.setItem('wq_dept_map',JSON.stringify(deptMap));}
 function getConsultDept(pid){return deptMap[pid]||null;}
+let diagMap=JSON.parse(localStorage.getItem('wq_diag_map')||'{}');
+function saveDiagMap(){localStorage.setItem('wq_diag_map',JSON.stringify(diagMap));}
+function getConsultDiag(pid){return diagMap[pid]||'';}
+function onDiagInput(pid,val){diagMap[pid]=val;saveDiagMap();}
 function setConsultDept(pid,dept){
   deptMap[pid]=getConsultDept(pid)===dept?null:dept;
   saveDeptMap();renderConsult();
@@ -969,19 +973,33 @@ function toggleConsultCard(pid,e){
 }
 function buildConsultCard(p,i){
   const done=p.tasks.filter(t=>t.done).length,total=p.tasks.length;
+  const allDone=total>0&&done===total;
   const dept=getConsultDept(p.id);const ds=dept?DEPT_STYLE[dept]:null;
+  const diag=getConsultDiag(p.id);
+  const avatarBg=ds?ds.bg:'var(--bg2)';const avatarColor=ds?ds.color:'var(--text3)';
   const isOpen=consultOpenSet.has(p.id);
-  return `<div class="pri-card-wrap${isOpen?' open':''}">
-    <div class="pri-card${isOpen?' open':''}" onclick="toggleConsultCard('${p.id}',event)">
-      <div class="pri-avatar-sm">${initials(p.name)}</div>
+  if(!isOpen) return `<div class="pri-card-wrap">
+    <div class="pri-tile" onclick="toggleConsultCard('${p.id}',event)">
+      <div class="pri-tile-avatar" style="background:${avatarBg};color:${avatarColor};">${initials(p.name)}</div>
+      <div class="pri-tile-name">${esc(p.name)}</div>
+      ${diag?`<div style="font-size:9px;color:var(--text3);font-style:italic;width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${esc(diag)}</div>`:''}
+      ${allDone?`<span class="pri-tile-done">✓ Done</span>`
+        :total?`<span class="pri-tile-count">${done}/${total}</span>`
+        :`<span class="pri-tile-count">—</span>`}
+    </div>
+  </div>`;
+  return `<div class="pri-card-wrap open">
+    <div class="pri-card-open" onclick="toggleConsultCard('${p.id}',event)">
+      <div class="pri-avatar-sm" style="background:${avatarBg};color:${avatarColor};">${initials(p.name)}</div>
       <div class="pri-pt-name">${esc(p.name)}</div>
       ${ds?`<span class="dept-badge" style="background:${ds.bg};color:${ds.color};border:1px solid ${ds.border};">${dept}</span>`:''}
       <span class="pri-task-badge">${total?done+'/'+total:'—'}</span>
       <button class="edit-pt-btn" onclick="event.stopPropagation();editPatientName('${p.id}','${esc(p.name)}')">✏️</button>
       <button class="del-pt-btn" onclick="event.stopPropagation();delPatient('${p.id}')">✕</button>
     </div>
-    ${isOpen?`<div class="pri-tasks-panel">
-      <div class="dept-pick-wrap" id="dept-picker-${p.id}" style="display:flex;margin-bottom:8px;">
+    <div class="pri-tasks-panel">
+      <input class="add-input" placeholder="Diagnosis..." value="${esc(diag)}" oninput="onDiagInput('${p.id}',this.value)" style="margin-bottom:10px;" />
+      <div class="dept-pick-wrap" style="margin-bottom:8px;">
         ${DEPT.map(d=>{const st=DEPT_STYLE[d];const active=getConsultDept(p.id)===d;return `<button class="dept-pick-btn" style="color:${active?'#fff':st.color};border-color:${st.border};background:${active?st.color:'transparent'};" onclick="setConsultDept('${p.id}','${d}')">${d}</button>`;}).join('')}
       </div>
       ${p.tasks.map(t=>`<div class="task-item">
@@ -994,7 +1012,7 @@ function buildConsultCard(p,i){
         <input class="add-input" id="ti-${p.id}" placeholder="Add task..." onkeydown="if(event.key==='Enter')addTask('${p.id}')" />
         <button class="add-btn" onclick="addTask('${p.id}')">+</button>
       </div>
-    </div>`:''}
+    </div>
   </div>`;
 }
 
@@ -1012,7 +1030,7 @@ function renderConsult(){
     html+=`<div class="staff-sub-hdr" style="background:${ds.bg};border:0.5px solid ${ds.border};border-left:3px solid ${ds.color};" onclick="toggleStaffSubSection('${colKey}')">
       <span class="staff-sub-title" style="color:${ds.color};">🏥 ${dept}</span>
       <span style="display:flex;align-items:center;gap:5px;"><span class="ward-count">${dPts.length} pt${dPts.length!==1?'s':''}</span><span class="section-chevron" id="schev-${colKey}" style="color:${ds.color};transform:${isCol?'rotate(-90deg)':'rotate(0deg)'}">▾</span></span>
-    </div><div class="section-body${isCol?' collapsed':''}" id="sbody-${colKey}">${dPts.map((p,i)=>buildConsultCard(p,i)).join('')}</div>`;
+    </div><div class="section-body${isCol?' collapsed':''}" id="sbody-${colKey}"><div class="pri-grid">${dPts.map((p,i)=>buildConsultCard(p,i)).join('')}</div></div>`;
   });
   const unassigned=pts.filter(p=>!getConsultDept(p.id));
   if(unassigned.length){
@@ -1020,7 +1038,7 @@ function renderConsult(){
     html+=`<div class="staff-sub-hdr" style="background:var(--bg2);border:0.5px solid var(--border);border-left:3px solid var(--border2);" onclick="toggleStaffSubSection('${colKey}')">
       <span class="staff-sub-title" style="color:var(--text3);">🩺 Unassigned</span>
       <span style="display:flex;align-items:center;gap:5px;"><span class="ward-count">${unassigned.length} pt${unassigned.length!==1?'s':''}</span><span class="section-chevron" id="schev-${colKey}" style="transform:${isCol?'rotate(-90deg)':'rotate(0deg)'}">▾</span></span>
-    </div><div class="section-body${isCol?' collapsed':''}" id="sbody-${colKey}">${unassigned.map((p,i)=>buildConsultCard(p,i)).join('')}</div>`;
+    </div><div class="section-body${isCol?' collapsed':''}" id="sbody-${colKey}"><div class="pri-grid">${unassigned.map((p,i)=>buildConsultCard(p,i)).join('')}</div></div>`;
   }
   el.innerHTML=html||'';
 }
