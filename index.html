@@ -208,6 +208,8 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .dtask-check svg{width:11px;height:11px;stroke:white;stroke-width:2.5;fill:none;opacity:0;transition:opacity .15s;}
 .dtask-check.sel svg{opacity:1;}
 .dtask-label{flex:1;font-size:13px;color:var(--text);line-height:1.4;}
+.dtask-toggle-btn{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.06em;padding:3px 9px;border-radius:99px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text2);cursor:pointer;transition:all .15s;}
+.dtask-toggle-btn:hover{background:var(--purple-dim);color:var(--text);}
 
 .log-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:16px;}
 .log-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text);letter-spacing:.04em;text-transform:uppercase;margin-bottom:14px;}
@@ -395,7 +397,13 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
       <div class="admit-name-row">
         <input class="add-input" id="admit-name" placeholder="e.g. Mr John, Bed 4..." style="margin:0;" />
       </div>
-      <div class="admit-section-label"><span></span>Standard admission tasks</div>
+      <div class="admit-section-label" style="justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:6px;"><span></span>Standard admission tasks</div>
+        <div style="display:flex;gap:6px;">
+          <button class="dtask-toggle-btn" onclick="selectAllDefaultTasks()">All</button>
+          <button class="dtask-toggle-btn" onclick="clearAllDefaultTasks()">Clear</button>
+        </div>
+      </div>
       <div id="default-tasks-list"></div>
       <div style="margin-top:14px;">
         <div class="admit-section-label"><span></span>Additional tasks</div>
@@ -843,6 +851,8 @@ function toggleDefaultTask(i){
   if(admitDefaultSel.has(i))admitDefaultSel.delete(i);else admitDefaultSel.add(i);
   renderAdmitForm();
 }
+function selectAllDefaultTasks(){admitDefaultSel=new Set(DEFAULT_ADMIT_TASKS.map((_,i)=>i));renderAdmitForm();}
+function clearAllDefaultTasks(){admitDefaultSel=new Set();renderAdmitForm();}
 function addCustomAdmitTask(){
   const inp=document.getElementById('custom-task-input');
   const val=inp.value.trim();if(!val)return;
