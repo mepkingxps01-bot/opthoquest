@@ -524,11 +524,14 @@ function getConsultDept(pid){return deptMap[pid]||null;}
 let diagMap=JSON.parse(localStorage.getItem('wq_diag_map')||'{}');
 function saveDiagMap(){localStorage.setItem('wq_diag_map',JSON.stringify(diagMap));}
 function getConsultDiag(pid){return diagMap[pid]||'';}
-function onDiagInput(pid,val){diagMap[pid]=val;saveDiagMap();}
 let wardLocMap=JSON.parse(localStorage.getItem('wq_wardloc_map')||'{}');
 function saveWardLocMap(){localStorage.setItem('wq_wardloc_map',JSON.stringify(wardLocMap));}
 function getWardLoc(pid){return wardLocMap[pid]||'';}
-function onWardLocInput(pid,val){wardLocMap[pid]=val;saveWardLocMap();}
+let _consultColAlert=false;
+function _consultColErr(e){if(e&&!_consultColAlert){_consultColAlert=true;alert('Run this SQL in Supabase to enable Consult sync:\nALTER TABLE patients ADD COLUMN IF NOT EXISTS dept text DEFAULT NULL;\nALTER TABLE patients ADD COLUMN IF NOT EXISTS diag text DEFAULT NULL;\nALTER TABLE patients ADD COLUMN IF NOT EXISTS wardloc text DEFAULT NULL;');}}
+const _diagTimers={},_locTimers={};
+function onDiagInput(pid,val){diagMap[pid]=val;saveDiagMap();clearTimeout(_diagTimers[pid]);_diagTimers[pid]=setTimeout(async()=>{const{error}=await sb.from('patients').update({diag:val}).eq('id',pid);_consultColErr(error);},600);}
+function onWardLocInput(pid,val){wardLocMap[pid]=val;saveWardLocMap();clearTimeout(_locTimers[pid]);_locTimers[pid]=setTimeout(async()=>{const{error}=await sb.from('patients').update({wardloc:val}).eq('id',pid);_consultColErr(error);},600);}
 let priRoundList=JSON.parse(localStorage.getItem('wq_pri_round')||'[]');
 function savePRIRound(){localStorage.setItem('wq_pri_round',JSON.stringify(priRoundList));}
 let metSet=new Set(JSON.parse(localStorage.getItem('wq_met_set')||'[]'));
@@ -582,9 +585,10 @@ function removeFromRound(pid){
   priRoundList=priRoundList.filter(id=>id!==pid);
   savePRIRound();renderConsult();
 }
-function setConsultDept(pid,dept){
+async function setConsultDept(pid,dept){
   deptMap[pid]=getConsultDept(pid)===dept?null:dept;
   saveDeptMap();renderConsult();
+  const{error}=await sb.from('patients').update({dept:deptMap[pid]}).eq('id',pid);_consultColErr(error);
 }
 function toggleDeptPicker(pid){
   const el=document.getElementById('dept-picker-'+pid);
@@ -1300,6 +1304,10 @@ async function loadAll(){
   let staffUpdated=false;
   pts.forEach(p=>{if(p.staff!==undefined){staffMap[p.id]=p.staff||null;staffUpdated=true;}});
   if(staffUpdated)saveStaffMap();
+  pts.forEach(p=>{if(p.dept!==undefined){deptMap[p.id]=p.dept||null;}});
+  pts.forEach(p=>{if(p.diag!==undefined){diagMap[p.id]=p.diag||'';}});
+  pts.forEach(p=>{if(p.wardloc!==undefined){wardLocMap[p.id]=p.wardloc||'';}});
+  saveDeptMap();saveDiagMap();saveWardLocMap();
   setSyncDot('online');
   renderXP();renderSummary();renderWard();renderConsult();
   document.getElementById('loading-screen').classList.add('hidden');
