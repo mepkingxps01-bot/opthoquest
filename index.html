@@ -99,6 +99,20 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .pri-pt-name{flex:1;font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .pri-task-badge{font-size:11px;color:var(--text3);min-width:28px;text-align:right;}
 .pri-tasks-panel{background:var(--card);border:0.5px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);padding:10px 12px 12px;}
+.round-list-section{background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius);padding:12px;margin-bottom:14px;}
+.round-list-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.round-list-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:var(--teal);letter-spacing:.06em;text-transform:uppercase;}
+.round-list-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-top:0.5px solid var(--border);}
+.round-list-row:first-of-type{border-top:none;}
+.round-list-name{font-size:13px;font-weight:700;color:var(--text);}
+.round-list-meta{font-size:11px;color:var(--text3);margin-top:2px;}
+.round-picker-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;display:flex;align-items:flex-end;}
+.round-picker-sheet{width:100%;background:var(--bg2);border-radius:18px 18px 0 0;padding:20px 16px 32px;max-height:70vh;overflow-y:auto;}
+.round-picker-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--text);margin-bottom:14px;}
+.round-picker-item{display:flex;align-items:center;gap:12px;padding:10px 0;border-top:0.5px solid var(--border);}
+.round-picker-cb{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--border2);background:transparent;cursor:pointer;appearance:none;-webkit-appearance:none;flex-shrink:0;transition:all .15s;}
+.round-picker-cb:checked{background:var(--teal);border-color:var(--teal);}
+.round-add-btn{background:linear-gradient(135deg,var(--teal),var(--purple2));border:none;border-radius:var(--radius);color:#fff;font-family:'Syne',sans-serif;font-size:13px;font-weight:800;padding:11px;width:100%;cursor:pointer;margin-top:14px;}
 .dept-badge{font-size:9px;font-weight:800;padding:2px 8px;border-radius:99px;font-family:'Syne',sans-serif;letter-spacing:.05em;flex-shrink:0;}
 .dept-pick-wrap{display:flex;flex-wrap:wrap;gap:5px;padding:6px 0 3px;}
 .dept-pick-btn{font-size:10px;font-family:'Syne',sans-serif;font-weight:700;padding:4px 10px;border-radius:99px;border:1.5px solid;cursor:pointer;transition:all .18s;background:transparent;letter-spacing:.03em;}
@@ -426,6 +440,13 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
   </div>
 </div>
 
+<div class="round-picker-overlay" id="round-picker-overlay" style="display:none" onclick="closeRoundPicker(event)">
+  <div class="round-picker-sheet" onclick="event.stopPropagation()">
+    <div class="round-picker-title">🩺 Select Consult Patients to Round</div>
+    <div id="round-picker-list"></div>
+    <button class="round-add-btn" onclick="confirmRoundPicker()">✓ Done</button>
+  </div>
+</div>
 <div class="bottom-bar"><div class="home-indicator"></div></div>
 <div class="xp-toast" id="xp-toast">+1 XP</div>
 <div class="lvlup-overlay" id="lvlup-overlay">
@@ -513,6 +534,44 @@ let diagMap=JSON.parse(localStorage.getItem('wq_diag_map')||'{}');
 function saveDiagMap(){localStorage.setItem('wq_diag_map',JSON.stringify(diagMap));}
 function getConsultDiag(pid){return diagMap[pid]||'';}
 function onDiagInput(pid,val){diagMap[pid]=val;saveDiagMap();}
+let wardLocMap=JSON.parse(localStorage.getItem('wq_wardloc_map')||'{}');
+function saveWardLocMap(){localStorage.setItem('wq_wardloc_map',JSON.stringify(wardLocMap));}
+function getWardLoc(pid){return wardLocMap[pid]||'';}
+function onWardLocInput(pid,val){wardLocMap[pid]=val;saveWardLocMap();}
+let priRoundList=JSON.parse(localStorage.getItem('wq_pri_round')||'[]');
+function savePRIRound(){localStorage.setItem('wq_pri_round',JSON.stringify(priRoundList));}
+function openRoundPicker(){
+  const overlay=document.getElementById('round-picker-overlay');
+  const listEl=document.getElementById('round-picker-list');
+  const pts=patients.filter(p=>p.ward==='consult');
+  if(!pts.length){listEl.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">No consult patients yet.</div>';overlay.style.display='flex';return;}
+  listEl.innerHTML=pts.map(p=>{
+    const diag=getConsultDiag(p.id);const loc=getWardLoc(p.id);
+    const checked=priRoundList.includes(p.id)?'checked':'';
+    const dept=getConsultDept(p.id);const ds=dept?DEPT_STYLE[dept]:null;
+    return `<div class="round-picker-item">
+      <input type="checkbox" class="round-picker-cb" id="rpcb-${p.id}" ${checked} />
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">${esc(p.name)}${ds?` <span style="font-size:9px;font-weight:800;padding:1px 6px;border-radius:99px;background:${ds.bg};color:${ds.color};border:1px solid ${ds.border};">${dept}</span>`:''}</div>
+        ${diag?`<div style="font-size:11px;color:var(--text3);">${esc(diag)}</div>`:''}
+        ${loc?`<div style="font-size:11px;color:var(--teal);">📍 ${esc(loc)}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  overlay.style.display='flex';
+}
+function closeRoundPicker(e){document.getElementById('round-picker-overlay').style.display='none';}
+function confirmRoundPicker(){
+  const pts=patients.filter(p=>p.ward==='consult');
+  priRoundList=pts.filter(p=>document.getElementById('rpcb-'+p.id)?.checked).map(p=>p.id);
+  savePRIRound();
+  closeRoundPicker();
+  renderPRIWard();
+}
+function removeFromRound(pid){
+  priRoundList=priRoundList.filter(id=>id!==pid);
+  savePRIRound();renderPRIWard();
+}
 function setConsultDept(pid,dept){
   deptMap[pid]=getConsultDept(pid)===dept?null:dept;
   saveDeptMap();renderConsult();
@@ -808,9 +867,28 @@ function renderPRIWard(){
   const list=document.getElementById('ward-list');
   const wardPts=patients.filter(p=>p.ward==='pri');
   const tot=wardPts.length;
-  const header=`<div class="ward-header"><span>Ward PRI</span><span class="ward-count">${tot} patient${tot!==1?'s':''}</span></div>`;
-  if(!tot){list.innerHTML=header+'<div class="empty"><div class="empty-icon">🏥</div>No patients in Ward PRI.<br>Use the Admit tab to add one.</div>';return;}
-  let html=header;
+  const header=`<div class="ward-header"><span>Ward PRI</span><span style="display:flex;align-items:center;gap:8px;"><span class="ward-count">${tot} patient${tot!==1?'s':''}</span><button class="handover-misc-btn" style="padding:6px 12px;font-size:12px;margin:0;width:auto;" onclick="openRoundPicker()">🩺 + Round</button></span></div>`;
+  // Round list section
+  const roundPts=priRoundList.map(id=>patients.find(p=>p.id===id)).filter(Boolean);
+  let roundHtml='';
+  if(roundPts.length){
+    roundHtml=`<div class="round-list-section">
+      <div class="round-list-hdr"><span class="round-list-title">📋 Round List</span><span class="ward-count">${roundPts.length} pt${roundPts.length!==1?'s':''}</span></div>
+      ${roundPts.map(p=>{
+        const diag=getConsultDiag(p.id);const loc=getWardLoc(p.id);
+        const dept=getConsultDept(p.id);const ds=dept?DEPT_STYLE[dept]:null;
+        return `<div class="round-list-row">
+          <div style="flex:1;">
+            <div class="round-list-name">${esc(p.name)}${ds?` <span class="dept-badge" style="background:${ds.bg};color:${ds.color};border:1px solid ${ds.border};">${dept}</span>`:''}</div>
+            <div class="round-list-meta">${diag?`Dx: ${esc(diag)}`:''}${diag&&loc?' · ':''}${loc?`📍 ${esc(loc)}`:''}</div>
+          </div>
+          <button class="del-pt-btn" onclick="removeFromRound('${p.id}')">✕</button>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+  if(!tot){list.innerHTML=header+roundHtml+'<div class="empty"><div class="empty-icon">🏥</div>No patients in Ward PRI.<br>Use the Admit tab to add one.</div>';return;}
+  let html=header+roundHtml;
   STAFF.forEach(staff=>{
     const sPts=wardPts.filter(p=>getStaff(p.id)===staff);if(!sPts.length)return;
     const st=STAFF_STYLE[staff];const colKey='pri-'+staff;const isCol=!!staffSectionCollapsed[colKey];
@@ -983,6 +1061,7 @@ function buildConsultCard(p,i){
       <div class="pri-tile-avatar" style="background:${avatarBg};color:${avatarColor};">${initials(p.name)}</div>
       <div class="pri-tile-name">${esc(p.name)}</div>
       ${diag?`<div style="font-size:9px;color:var(--text3);font-style:italic;width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${esc(diag)}</div>`:''}
+      ${getWardLoc(p.id)?`<div style="font-size:9px;color:var(--teal);width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">📍 ${esc(getWardLoc(p.id))}</div>`:''}
       ${allDone?`<span class="pri-tile-done">✓ Done</span>`
         :total?`<span class="pri-tile-count">${done}/${total}</span>`
         :`<span class="pri-tile-count">—</span>`}
@@ -998,7 +1077,10 @@ function buildConsultCard(p,i){
       <button class="del-pt-btn" onclick="event.stopPropagation();delPatient('${p.id}')">✕</button>
     </div>
     <div class="pri-tasks-panel">
-      <input class="add-input" placeholder="Diagnosis..." value="${esc(diag)}" oninput="onDiagInput('${p.id}',this.value)" style="margin-bottom:10px;" />
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <input class="add-input" placeholder="Diagnosis..." value="${esc(diag)}" oninput="onDiagInput('${p.id}',this.value)" style="flex:2;" />
+        <input class="add-input" placeholder="📍 Ward/Room..." value="${esc(getWardLoc(p.id))}" oninput="onWardLocInput('${p.id}',this.value)" style="flex:1;" />
+      </div>
       <div class="dept-pick-wrap" style="margin-bottom:8px;">
         ${DEPT.map(d=>{const st=DEPT_STYLE[d];const active=getConsultDept(p.id)===d;return `<button class="dept-pick-btn" style="color:${active?'#fff':st.color};border-color:${st.border};background:${active?st.color:'transparent'};" onclick="setConsultDept('${p.id}','${d}')">${d}</button>`;}).join('')}
       </div>
