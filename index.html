@@ -336,27 +336,6 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
     </div>
   </div>
 
-  <div class="xp-card">
-    <div class="xp-top">
-      <div class="xp-level-badge">
-        <div class="level-ring"><span id="lvl-num">1</span></div>
-        <div>
-          <div class="level-title" id="lvl-title">Intern</div>
-          <div class="level-sub" id="lvl-sub">0 XP to next level</div>
-        </div>
-      </div>
-      <div class="xp-right">
-        <div class="xp-num" id="xp-total">0</div>
-        <div class="xp-label">TOTAL XP</div>
-        <button class="xp-reset-btn" onclick="resetWardXP()">↺ Reset</button>
-      </div>
-    </div>
-    <div class="xp-bar-wrap"><div class="xp-bar-fill" id="xp-bar" style="width:0%"></div></div>
-    <div class="xp-bar-labels"><span id="xp-cur">0 XP</span><span id="xp-next"></span></div>
-  </div>
-
-  <div class="summary" id="summary"></div>
-
   <div class="tabs">
     <button class="tab active" id="tab-ward" onclick="switchTab('ward')">📋 Ward</button>
     <button class="tab" id="tab-admit" onclick="switchTab('admit')">🏥 Admit</button>
@@ -432,10 +411,12 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
   </div>
 
   <div id="view-log" style="display:none">
-    <div class="add-row" style="margin-bottom:14px;">
+    <div class="add-row" style="margin-bottom:10px;">
       <input class="add-input" id="consult-name-input" placeholder="ชื่อผู้ป่วย Consult..." onkeydown="if(event.key==='Enter')addConsultPatient()" />
       <button class="add-btn" onclick="addConsultPatient()">+ Add</button>
+      <button class="handover-misc-btn" style="padding:0 14px;font-size:12px;margin:0;width:auto;white-space:nowrap;" onclick="openRoundPicker()">🩺 Round</button>
     </div>
+    <div id="consult-round-list"></div>
     <div id="consult-list"></div>
   </div>
 </div>
@@ -566,11 +547,11 @@ function confirmRoundPicker(){
   priRoundList=pts.filter(p=>document.getElementById('rpcb-'+p.id)?.checked).map(p=>p.id);
   savePRIRound();
   closeRoundPicker();
-  renderPRIWard();
+  renderConsult();
 }
 function removeFromRound(pid){
   priRoundList=priRoundList.filter(id=>id!==pid);
-  savePRIRound();renderPRIWard();
+  savePRIRound();renderConsult();
 }
 function setConsultDept(pid,dept){
   deptMap[pid]=getConsultDept(pid)===dept?null:dept;
@@ -705,34 +686,8 @@ function showToast(msg){
   toastTimer=setTimeout(()=>t.classList.remove('show'),1600);
 }
 
-function renderXP(){
-  const xp=xpByWard[activeWard]||0,li=getLevel(xp),lv=LEVELS[li],lvN=LEVELS[li+1]||null;
-  document.getElementById('lvl-num').textContent=li+1;
-  document.getElementById('lvl-title').textContent=lv.title;
-  document.getElementById('xp-total').textContent=xp;
-  if(lvN){
-    const prog=(xp-lv.min)/(lvN.min-lv.min)*100;
-    document.getElementById('xp-bar').style.width=Math.min(100,prog)+'%';
-    document.getElementById('xp-cur').textContent=xp+' XP';
-    document.getElementById('xp-next').textContent=lvN.min+' XP';
-    document.getElementById('lvl-sub').textContent=(lvN.min-xp)+' XP to '+lvN.title;
-  } else {
-    document.getElementById('xp-bar').style.width='100%';
-    document.getElementById('xp-cur').textContent='MAX LEVEL';
-    document.getElementById('xp-next').textContent='👁️';
-    document.getElementById('lvl-sub').textContent='Maximum rank reached!';
-  }
-}
-
-function renderSummary(){
-  const wardPts=patients.filter(p=>(p.ward||'a')===activeWard);
-  const tasks=wardPts.reduce((a,p)=>a+p.tasks.length,0);
-  const tasksDone=wardPts.reduce((a,p)=>a+p.tasks.filter(t=>t.done).length,0);
-  document.getElementById('summary').innerHTML=`
-    <div class="stat"><div class="stat-num accent">${tasksDone}/${tasks}</div><div class="stat-label">Tasks done</div></div>
-    <div class="stat"><div class="stat-num gold">${xpByWard[activeWard]||0}</div><div class="stat-label">Ward XP</div></div>
-  `;
-}
+function renderXP(){}
+function renderSummary(){}
 
 function buildPatientCard(p,idx){
   const done=p.tasks.filter(t=>t.done).length,total=p.tasks.length;
@@ -867,28 +822,9 @@ function renderPRIWard(){
   const list=document.getElementById('ward-list');
   const wardPts=patients.filter(p=>p.ward==='pri');
   const tot=wardPts.length;
-  const header=`<div class="ward-header"><span>Ward PRI</span><span style="display:flex;align-items:center;gap:8px;"><span class="ward-count">${tot} patient${tot!==1?'s':''}</span><button class="handover-misc-btn" style="padding:6px 12px;font-size:12px;margin:0;width:auto;" onclick="openRoundPicker()">🩺 + Round</button></span></div>`;
-  // Round list section
-  const roundPts=priRoundList.map(id=>patients.find(p=>p.id===id)).filter(Boolean);
-  let roundHtml='';
-  if(roundPts.length){
-    roundHtml=`<div class="round-list-section">
-      <div class="round-list-hdr"><span class="round-list-title">📋 Round List</span><span class="ward-count">${roundPts.length} pt${roundPts.length!==1?'s':''}</span></div>
-      ${roundPts.map(p=>{
-        const diag=getConsultDiag(p.id);const loc=getWardLoc(p.id);
-        const dept=getConsultDept(p.id);const ds=dept?DEPT_STYLE[dept]:null;
-        return `<div class="round-list-row">
-          <div style="flex:1;">
-            <div class="round-list-name">${esc(p.name)}${ds?` <span class="dept-badge" style="background:${ds.bg};color:${ds.color};border:1px solid ${ds.border};">${dept}</span>`:''}</div>
-            <div class="round-list-meta">${diag?`Dx: ${esc(diag)}`:''}${diag&&loc?' · ':''}${loc?`📍 ${esc(loc)}`:''}</div>
-          </div>
-          <button class="del-pt-btn" onclick="removeFromRound('${p.id}')">✕</button>
-        </div>`;
-      }).join('')}
-    </div>`;
-  }
-  if(!tot){list.innerHTML=header+roundHtml+'<div class="empty"><div class="empty-icon">🏥</div>No patients in Ward PRI.<br>Use the Admit tab to add one.</div>';return;}
-  let html=header+roundHtml;
+  const header=`<div class="ward-header"><span>Ward PRI</span><span class="ward-count">${tot} patient${tot!==1?'s':''}</span></div>`;
+  if(!tot){list.innerHTML=header+'<div class="empty"><div class="empty-icon">🏥</div>No patients in Ward PRI.<br>Use the Admit tab to add one.</div>';return;}
+  let html=header;
   STAFF.forEach(staff=>{
     const sPts=wardPts.filter(p=>getStaff(p.id)===staff);if(!sPts.length)return;
     const st=STAFF_STYLE[staff];const colKey='pri-'+staff;const isCol=!!staffSectionCollapsed[colKey];
@@ -1101,6 +1037,29 @@ function buildConsultCard(p,i){
 function renderConsult(){
   const el=document.getElementById('consult-list');
   if(!el)return;
+  // Render round list
+  const roundEl=document.getElementById('consult-round-list');
+  if(roundEl){
+    const roundPts=priRoundList.map(id=>patients.find(p=>p.id===id)).filter(Boolean);
+    if(roundPts.length){
+      roundEl.innerHTML=`<div class="round-list-section">
+        <div class="round-list-hdr"><span class="round-list-title">📋 Round List</span><span class="ward-count">${roundPts.length} pt${roundPts.length!==1?'s':''}</span></div>
+        ${roundPts.map(p=>{
+          const diag=getConsultDiag(p.id);const loc=getWardLoc(p.id);
+          const dept=getConsultDept(p.id);const ds=dept?DEPT_STYLE[dept]:null;
+          return `<div class="round-list-row">
+            <div style="flex:1;">
+              <div class="round-list-name">${esc(p.name)}${ds?` <span class="dept-badge" style="background:${ds.bg};color:${ds.color};border:1px solid ${ds.border};">${dept}</span>`:''}</div>
+              <div class="round-list-meta">${diag?`Dx: ${esc(diag)}`:''}${diag&&loc?' · ':''}${loc?`📍 ${esc(loc)}`:''}</div>
+            </div>
+            <button class="del-pt-btn" onclick="removeFromRound('${p.id}')">✕</button>
+          </div>`;
+        }).join('')}
+      </div>`;
+    } else {
+      roundEl.innerHTML='';
+    }
+  }
   const pts=patients.filter(p=>p.ward==='consult');
   if(!pts.length){el.innerHTML='<div class="empty" style="padding:1rem 0"><div class="empty-icon">🩺</div>No consult patients yet.</div>';return;}
   let html='';
