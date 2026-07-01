@@ -1550,7 +1550,15 @@ document.getElementById('date-label').textContent=new Date().toLocaleDateString(
 const _initWard=localStorage.getItem('wq_active_ward')||'a';
 if(_initWard!=='a')selectMenuBtn(_initWard);
 renderAdmitForm();
-loadAll().then(()=>setupRealtime());
+loadAll().then(()=>{
+  setupRealtime();
+  setInterval(()=>{
+    const a=document.activeElement;
+    if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'))return;
+    loadAll();
+  },30000);
+});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')loadAll();});
 </script>
 </body>
 </html>
