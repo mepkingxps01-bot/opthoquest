@@ -1304,9 +1304,19 @@ async function loadAll(){
   let staffUpdated=false;
   pts.forEach(p=>{if(p.staff!==undefined){staffMap[p.id]=p.staff||null;staffUpdated=true;}});
   if(staffUpdated)saveStaffMap();
-  pts.forEach(p=>{if(p.dept!==undefined){deptMap[p.id]=p.dept||null;}});
-  pts.forEach(p=>{if(p.diag!==undefined){diagMap[p.id]=p.diag||'';}});
-  pts.forEach(p=>{if(p.wardloc!==undefined){wardLocMap[p.id]=p.wardloc||'';}});
+  // Merge: Supabase wins when it has data; local wins when Supabase is null (and pushes to sync)
+  pts.forEach(p=>{
+    if(p.dept!=null){deptMap[p.id]=p.dept;}
+    else if(p.dept===null&&deptMap[p.id])sb.from('patients').update({dept:deptMap[p.id]}).eq('id',p.id);
+  });
+  pts.forEach(p=>{
+    if(p.diag!=null){diagMap[p.id]=p.diag;}
+    else if(p.diag===null&&diagMap[p.id])sb.from('patients').update({diag:diagMap[p.id]}).eq('id',p.id);
+  });
+  pts.forEach(p=>{
+    if(p.wardloc!=null){wardLocMap[p.id]=p.wardloc;}
+    else if(p.wardloc===null&&wardLocMap[p.id])sb.from('patients').update({wardloc:wardLocMap[p.id]}).eq('id',p.id);
+  });
   saveDeptMap();saveDiagMap();saveWardLocMap();
   setSyncDot('online');
   renderXP();renderSummary();renderWard();renderConsult();
