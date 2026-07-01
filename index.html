@@ -95,6 +95,9 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .pri-pt-name{flex:1;font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .pri-task-badge{font-size:11px;color:var(--text3);min-width:28px;text-align:right;}
 .pri-tasks-panel{background:var(--card);border:0.5px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);padding:10px 12px 12px;}
+.dept-badge{font-size:9px;font-weight:800;padding:2px 8px;border-radius:99px;font-family:'Syne',sans-serif;letter-spacing:.05em;flex-shrink:0;}
+.dept-pick-wrap{display:flex;flex-wrap:wrap;gap:5px;padding:6px 0 3px;}
+.dept-pick-btn{font-size:10px;font-family:'Syne',sans-serif;font-weight:700;padding:4px 10px;border-radius:99px;border:1.5px solid;cursor:pointer;transition:all .18s;background:transparent;letter-spacing:.03em;}
 .pri-grid.landscape{grid-template-columns:1fr 1fr;}
 .edit-pt-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:3px 5px;border-radius:5px;transition:color .15s;}
 .edit-pt-btn:hover{color:var(--purple);background:var(--purple-dim);}
@@ -127,16 +130,6 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .stat-label{font-size:10px;color:var(--text3);margin-top:3px;}
 
 .tabs{display:flex;gap:6px;margin-bottom:10px;}
-.round-bar{display:flex;align-items:center;gap:10px;margin-bottom:14px;background:var(--card);border:0.5px solid var(--border2);border-radius:var(--radius);padding:10px 14px;}
-.round-label{font-size:11px;font-weight:700;color:var(--purple);letter-spacing:.06em;white-space:nowrap;}
-.round-time-input{background:var(--bg2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);font-family:'Syne',sans-serif;font-size:15px;font-weight:700;padding:5px 8px;outline:none;width:95px;text-align:center;}
-.round-time-input:focus{border-color:var(--purple);}
-.round-time-input:disabled{opacity:0.35;cursor:not-allowed;}
-.no-round-wrap{display:flex;align-items:center;gap:6px;margin-left:auto;cursor:pointer;user-select:none;}
-.no-round-cb{width:16px;height:16px;border-radius:5px;border:1.5px solid var(--border2);background:transparent;cursor:pointer;appearance:none;-webkit-appearance:none;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
-.no-round-cb:checked{background:var(--red,#ff7070);border-color:var(--red,#ff7070);}
-.no-round-cb:checked::after{content:'✕';color:#fff;font-size:10px;line-height:1;display:block;text-align:center;}
-.no-round-label{font-size:11px;font-weight:600;color:var(--text3);white-space:nowrap;}
 .tab{flex:1;padding:9px 4px;border-radius:var(--radius-sm);border:0.5px solid var(--tab-border);background:transparent;color:var(--tab-color);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:5px;}
 .tab.active{background:var(--tab-active-bg);border-color:var(--tab-active-border);color:var(--text);font-weight:600;}
 .tab:hover:not(.active){background:var(--tab-hover-bg);color:var(--tab-hover-color);}
@@ -352,14 +345,6 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
     <button class="tab" id="tab-log" onclick="switchTab('log')">🩺 Consult</button>
   </div>
 
-  <div class="round-bar">
-    <span class="round-label">⏰ เวลาราวนด์ :</span>
-    <input type="time" id="round-time-input" class="round-time-input" />
-    <label class="no-round-wrap">
-      <input type="checkbox" id="no-round-cb" class="no-round-cb" onchange="onNoRoundChange(this.checked)" />
-      <span class="no-round-label">ไม่มีราวนด์</span>
-    </label>
-  </div>
 
   <div id="view-ward">
     <div id="ward-list"></div>
@@ -506,6 +491,28 @@ const STAFF_STYLE={
 let staffMap=JSON.parse(localStorage.getItem('wq_staff_map')||'{}');
 function saveStaffMap(){localStorage.setItem('wq_staff_map',JSON.stringify(staffMap));}
 function getStaff(pid){return staffMap[pid]||null;}
+
+const DEPT=['Med','OB','Ped','Surg','Ortho','ENT','Other'];
+const DEPT_STYLE={
+  'Med':   {bg:'rgba(37,99,235,0.12)', border:'rgba(37,99,235,0.35)', color:'#3b82f6'},
+  'OB':    {bg:'rgba(236,72,153,0.12)',border:'rgba(236,72,153,0.35)',color:'#ec4899'},
+  'Ped':   {bg:'rgba(245,158,11,0.12)',border:'rgba(245,158,11,0.35)',color:'#f59e0b'},
+  'Surg':  {bg:'rgba(220,38,38,0.12)', border:'rgba(220,38,38,0.35)', color:'#ef4444'},
+  'Ortho': {bg:'rgba(16,185,129,0.12)',border:'rgba(16,185,129,0.35)',color:'#10b981'},
+  'ENT':   {bg:'rgba(139,92,246,0.12)',border:'rgba(139,92,246,0.35)',color:'#8b5cf6'},
+  'Other': {bg:'rgba(107,114,128,0.12)',border:'rgba(107,114,128,0.35)',color:'#9ca3af'},
+};
+let deptMap=JSON.parse(localStorage.getItem('wq_dept_map')||'{}');
+function saveDeptMap(){localStorage.setItem('wq_dept_map',JSON.stringify(deptMap));}
+function getConsultDept(pid){return deptMap[pid]||null;}
+function setConsultDept(pid,dept){
+  deptMap[pid]=getConsultDept(pid)===dept?null:dept;
+  saveDeptMap();renderConsult();
+}
+function toggleDeptPicker(pid){
+  const el=document.getElementById('dept-picker-'+pid);
+  if(el)el.style.display=el.style.display==='flex'?'none':'flex';
+}
 async function setStaff(pid,name){
   const newStaff=getStaff(pid)===name?null:name;
   staffMap[pid]=newStaff;
@@ -939,12 +946,68 @@ function addCustomAdmitTask(){
 }
 function removeCustomAdmitTask(i){admitCustomTasks.splice(i,1);renderAdmitForm();}
 
+let consultOpenSet=new Set();
+function toggleConsultCard(pid,e){
+  if(e)e.stopPropagation();
+  if(consultOpenSet.has(pid))consultOpenSet.delete(pid);else consultOpenSet.add(pid);
+  renderConsult();
+}
+function buildConsultCard(p,i){
+  const done=p.tasks.filter(t=>t.done).length,total=p.tasks.length;
+  const dept=getConsultDept(p.id);const ds=dept?DEPT_STYLE[dept]:null;
+  const isOpen=consultOpenSet.has(p.id);
+  return `<div class="pri-card-wrap${isOpen?' open':''}">
+    <div class="pri-card${isOpen?' open':''}" onclick="toggleConsultCard('${p.id}',event)">
+      <div class="pri-avatar-sm">${initials(p.name)}</div>
+      <div class="pri-pt-name">${esc(p.name)}</div>
+      ${ds?`<span class="dept-badge" style="background:${ds.bg};color:${ds.color};border:1px solid ${ds.border};">${dept}</span>`:''}
+      <span class="pri-task-badge">${total?done+'/'+total:'—'}</span>
+      <button class="edit-pt-btn" onclick="event.stopPropagation();editPatientName('${p.id}','${esc(p.name)}')">✏️</button>
+      <button class="del-pt-btn" onclick="event.stopPropagation();delPatient('${p.id}')">✕</button>
+    </div>
+    ${isOpen?`<div class="pri-tasks-panel">
+      <div class="dept-pick-wrap" id="dept-picker-${p.id}" style="display:flex;margin-bottom:8px;">
+        ${DEPT.map(d=>{const st=DEPT_STYLE[d];const active=getConsultDept(p.id)===d;return `<button class="dept-pick-btn" style="color:${active?'#fff':st.color};border-color:${st.border};background:${active?st.color:'transparent'};" onclick="setConsultDept('${p.id}','${d}')">${d}</button>`;}).join('')}
+      </div>
+      ${p.tasks.map(t=>`<div class="task-item">
+        <button class="check-btn ${t.done?'done':''}" onclick="toggleTask('${p.id}','${t.id}')"><svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg></button>
+        <span class="task-text ${t.done?'done':''}">${esc(t.text)}</span>
+        <button class="del-btn" onclick="delTask('${p.id}','${t.id}')">✕</button>
+      </div>`).join('')}
+      ${!total?'<div style="font-size:12px;color:var(--text3);padding:2px 0 6px;">No tasks yet.</div>':''}
+      <div class="add-row" style="margin-top:6px;">
+        <input class="add-input" id="ti-${p.id}" placeholder="Add task..." onkeydown="if(event.key==='Enter')addTask('${p.id}')" />
+        <button class="add-btn" onclick="addTask('${p.id}')">+</button>
+      </div>
+    </div>`:''}
+  </div>`;
+}
+
 function renderConsult(){
   const el=document.getElementById('consult-list');
   if(!el)return;
   const pts=patients.filter(p=>p.ward==='consult');
   if(!pts.length){el.innerHTML='<div class="empty" style="padding:1rem 0"><div class="empty-icon">🩺</div>No consult patients yet.</div>';return;}
-  el.innerHTML=pts.map((p,i)=>buildPatientCard(p,i)).join('');
+  let html='';
+  DEPT.forEach(dept=>{
+    const dPts=pts.filter(p=>getConsultDept(p.id)===dept);
+    if(!dPts.length)return;
+    const ds=DEPT_STYLE[dept];
+    const colKey='consult-'+dept;const isCol=!!staffSectionCollapsed[colKey];
+    html+=`<div class="staff-sub-hdr" style="background:${ds.bg};border:0.5px solid ${ds.border};border-left:3px solid ${ds.color};" onclick="toggleStaffSubSection('${colKey}')">
+      <span class="staff-sub-title" style="color:${ds.color};">🏥 ${dept}</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span class="ward-count">${dPts.length} pt${dPts.length!==1?'s':''}</span><span class="section-chevron" id="schev-${colKey}" style="color:${ds.color};transform:${isCol?'rotate(-90deg)':'rotate(0deg)'}">▾</span></span>
+    </div><div class="section-body${isCol?' collapsed':''}" id="sbody-${colKey}">${dPts.map((p,i)=>buildConsultCard(p,i)).join('')}</div>`;
+  });
+  const unassigned=pts.filter(p=>!getConsultDept(p.id));
+  if(unassigned.length){
+    const colKey='consult-unassigned';const isCol=!!staffSectionCollapsed[colKey];
+    html+=`<div class="staff-sub-hdr" style="background:var(--bg2);border:0.5px solid var(--border);border-left:3px solid var(--border2);" onclick="toggleStaffSubSection('${colKey}')">
+      <span class="staff-sub-title" style="color:var(--text3);">🩺 Unassigned</span>
+      <span style="display:flex;align-items:center;gap:5px;"><span class="ward-count">${unassigned.length} pt${unassigned.length!==1?'s':''}</span><span class="section-chevron" id="schev-${colKey}" style="transform:${isCol?'rotate(-90deg)':'rotate(0deg)'}">▾</span></span>
+    </div><div class="section-body${isCol?' collapsed':''}" id="sbody-${colKey}">${unassigned.map((p,i)=>buildConsultCard(p,i)).join('')}</div>`;
+  }
+  el.innerHTML=html||'';
 }
 
 async function addConsultPatient(){
@@ -966,7 +1029,6 @@ function selectMenuBtn(btn){
   ['a','b','c','d','pri'].forEach(b=>{
     document.getElementById('menu-btn-'+b).className='menu-btn'+(b===btn?' active':'');
   });
-  applyNoRound(localStorage.getItem('wq_no_round_'+btn)==='true');
   renderXP();renderSummary();renderWard();renderHandover();
 }
 function setAdmitWard(btn){
@@ -1089,17 +1151,6 @@ async function loadAll(){
     (settingsData||[]).forEach(r=>{allSettings[r.key]=r.value;});
   }catch(e){console.warn('Settings load skipped:',e);}
 
-  const rtVal = allSettings['round_time']||'';
-  if(rtVal){
-    localStorage.setItem('wq_round_time',rtVal);
-    const inp=document.getElementById('round-time-input');
-    if(inp&&document.activeElement!==inp)inp.value=rtVal;
-  }
-  ['a','b','c','d','pri'].forEach(w=>{
-    const nrVal=allSettings['no_round_'+w]==='true';
-    localStorage.setItem('wq_no_round_'+w,nrVal?'true':'false');
-  });
-  applyNoRound(localStorage.getItem('wq_no_round_'+activeWard)==='true');
   ['a','b','c','d','pri'].forEach(w=>{handoverNotes[w]=allSettings['handover_'+w]||'';});
   renderHandover();
   handoverMiscNote=allSettings['handover_misc']||'';
@@ -1369,31 +1420,7 @@ if(localStorage.getItem('wq_theme')==='light'){
 }
 document.getElementById('date-label').textContent=new Date().toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
 
-// ── Round notify ─────────────────────────────────────────────
-const _roundInput=document.getElementById('round-time-input');
-const _savedRoundTime=localStorage.getItem('wq_round_time')||'';
-if(_roundInput&&_savedRoundTime)_roundInput.value=_savedRoundTime;
-if(_roundInput)_roundInput.addEventListener('change',e=>{
-  const val=e.target.value;
-  localStorage.setItem('wq_round_time',val);
-  sb.from('settings').upsert({key:'round_time',value:val}).then(()=>{});
-});
 
-function applyNoRound(checked){
-  const cb=document.getElementById('no-round-cb');
-  const inp=document.getElementById('round-time-input');
-  if(cb)cb.checked=checked;
-  if(inp)inp.disabled=checked;
-}
-
-function onNoRoundChange(checked){
-  localStorage.setItem('wq_no_round_'+activeWard,checked?'true':'false');
-  applyNoRound(checked);
-  sb.from('settings').upsert({key:'no_round_'+activeWard,value:String(checked)}).then(()=>{});
-}
-
-// restore no_round on page load
-applyNoRound(localStorage.getItem('wq_no_round_'+(localStorage.getItem('wq_active_ward')||'a'))==='true');
 
 function applyPRILandscape(){
   const isLandscape=window.innerWidth>window.innerHeight;
