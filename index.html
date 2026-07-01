@@ -740,16 +740,19 @@ function renderWard(){
   }
   const inWard=wardPts.filter(p=>getSection(p.id)==='ward');
   const inNonWard=wardPts.filter(p=>getSection(p.id)==='nonward');
+  const showNonWard=activeWard!=='pri';
   list.innerHTML=header
     +`<div class="section-header ward-hdr" onclick="toggleSectionCollapse('ward')"><span class="section-title">🏥 Ward Section</span><span style="display:flex;align-items:center;gap:6px;"><span class="ward-count">${inWard.length} patient${inWard.length!==1?'s':''}</span><span class="section-chevron" id="section-chevron-ward" style="transform:${sectionCollapsed.ward?'rotate(-90deg)':'rotate(0deg)'}">▾</span></span></div>`
     +`<div class="section-body${sectionCollapsed.ward?' collapsed':''}" id="section-body-ward">`
     +(inWard.length?renderORStatusGroups(inWard,'ward'):'<div class="empty" style="padding:1rem 0;font-size:12px;">No patients in ward section.</div>')
     +`</div>`
-    +`<div class="section-divider"></div>`
-    +`<div class="section-header nonward-hdr" onclick="toggleSectionCollapse('nonward')"><span class="section-title">📋 Non-Ward Section</span><span style="display:flex;align-items:center;gap:6px;"><span class="ward-count">${inNonWard.length} item${inNonWard.length!==1?'s':''}</span><span class="section-chevron" id="section-chevron-nonward" style="transform:${sectionCollapsed.nonward?'rotate(-90deg)':'rotate(0deg)'}">▾</span></span></div>`
-    +`<div class="section-body${sectionCollapsed.nonward?' collapsed':''}" id="section-body-nonward">`
-    +(inNonWard.length?renderStaffSubSections(inNonWard,'nonward'):'<div class="empty" style="padding:1rem 0;font-size:12px;">No items in non-ward section.</div>')
-    +`</div>`;
+    +(showNonWard
+      ?`<div class="section-divider"></div>`
+       +`<div class="section-header nonward-hdr" onclick="toggleSectionCollapse('nonward')"><span class="section-title">📋 Non-Ward Section</span><span style="display:flex;align-items:center;gap:6px;"><span class="ward-count">${inNonWard.length} item${inNonWard.length!==1?'s':''}</span><span class="section-chevron" id="section-chevron-nonward" style="transform:${sectionCollapsed.nonward?'rotate(-90deg)':'rotate(0deg)'}">▾</span></span></div>`
+       +`<div class="section-body${sectionCollapsed.nonward?' collapsed':''}" id="section-body-nonward">`
+       +(inNonWard.length?renderStaffSubSections(inNonWard,'nonward'):'<div class="empty" style="padding:1rem 0;font-size:12px;">No items in non-ward section.</div>')
+       +`</div>`
+      :'');
 }
 
 function dischargePatient(pid){
