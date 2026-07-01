@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
 <title>Ophtho Ward Quest</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
@@ -88,7 +91,11 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .pri-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:8px;}
 .pri-card-wrap{min-width:0;}
 .pri-card-wrap.open{grid-column:1/-1;}
-.pri-tile{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;transition:background .15s;user-select:none;text-align:center;}
+.pri-tile{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;transition:background .15s;user-select:none;text-align:center;position:relative;}
+.met-btn{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--border2);background:transparent;cursor:pointer;flex-shrink:0;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;transition:all .15s;color:transparent;padding:0;line-height:1;}
+.met-btn.met{border-color:var(--green);background:var(--green-dim);color:var(--green);}
+.tile-met-dot{position:absolute;top:4px;right:4px;width:16px;height:16px;border-radius:50%;background:var(--green);color:#000;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;}
+.tile-met-dot.empty{background:transparent;border:1.5px solid var(--border2);}
 .pri-tile:hover{background:var(--card-hover);}
 .pri-tile-avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:13px;font-weight:800;flex-shrink:0;}
 .pri-tile-name{font-size:11px;font-weight:700;color:var(--text);width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.3;}
@@ -524,6 +531,17 @@ function getWardLoc(pid){return wardLocMap[pid]||'';}
 function onWardLocInput(pid,val){wardLocMap[pid]=val;saveWardLocMap();}
 let priRoundList=JSON.parse(localStorage.getItem('wq_pri_round')||'[]');
 function savePRIRound(){localStorage.setItem('wq_pri_round',JSON.stringify(priRoundList));}
+let metSet=new Set(JSON.parse(localStorage.getItem('wq_met_set')||'[]'));
+function saveMet(){localStorage.setItem('wq_met_set',JSON.stringify([...metSet]));}
+function toggleMet(pid,e){
+  if(e)e.stopPropagation();
+  if(metSet.has(pid))metSet.delete(pid);else metSet.add(pid);
+  saveMet();
+  const vLog=document.getElementById('view-log');
+  if(vLog&&vLog.style.display!=='none')renderConsult();
+  else if(activeWard==='pri')renderPRIWard();
+  else renderWard();
+}
 function openRoundPicker(){
   const overlay=document.getElementById('round-picker-overlay');
   const listEl=document.getElementById('round-picker-list');
@@ -705,10 +723,12 @@ function buildPatientCard(p,idx){
   const isWard=sec==='ward';
   const staff=getStaff(p.id);
   const staffSt=staff?STAFF_STYLE[staff]:null;
+  const isMet=metSet.has(p.id);
   return `<div class="pt-block${isDc?' discharged':''}${orSt&&isWard?' or-status-'+orSt:''}">
     <div class="pt-card-grid">
       <div class="pt-left">
         <div class="pt-left-info">
+          <button class="met-btn${isMet?' met':''}" onclick="toggleMet('${p.id}',event)">${isMet?'✓':''}</button>
           <span class="pt-num">${idx+1}.</span>
           <div class="pt-avatar">${initials(p.name)}</div>
           <div class="pt-left-name">
@@ -785,8 +805,10 @@ function buildPRICard(p,i){
   const avatarBg=staffSt?staffSt.bg:'var(--purple-dim)';
   const avatarColor=staffSt?staffSt.color:'var(--purple)';
   const isOpen=priOpenSet.has(p.id);
+  const isMet=metSet.has(p.id);
   if(!isOpen) return `<div class="pri-card-wrap">
-    <div class="pri-tile" onclick="togglePRICard('${p.id}',event)">
+    <div class="pri-tile${isMet?' met-tile':''}" onclick="togglePRICard('${p.id}',event)">
+      <span class="tile-met-dot${isMet?'':' empty'}" onclick="toggleMet('${p.id}',event)">${isMet?'✓':''}</span>
       <div class="pri-tile-avatar" style="background:${avatarBg};color:${avatarColor};">${initials(p.name)}</div>
       <div class="pri-tile-name">${esc(p.name)}</div>
       ${allDone?`<span class="pri-tile-done">✓ Done</span>`
@@ -796,6 +818,7 @@ function buildPRICard(p,i){
   </div>`;
   return `<div class="pri-card-wrap open">
     <div class="pri-card-open" onclick="togglePRICard('${p.id}',event)">
+      <button class="met-btn${isMet?' met':''}" onclick="toggleMet('${p.id}',event)">${isMet?'✓':''}</button>
       <div class="pri-avatar-sm" style="background:${avatarBg};color:${avatarColor};">${initials(p.name)}</div>
       <div class="pri-pt-name">${esc(p.name)}</div>
       <span class="pri-task-badge">${total?done+'/'+total:'—'}</span>
@@ -995,8 +1018,10 @@ function buildConsultCard(p,i){
   const diag=getConsultDiag(p.id);
   const avatarBg=ds?ds.bg:'var(--bg2)';const avatarColor=ds?ds.color:'var(--text3)';
   const isOpen=consultOpenSet.has(p.id);
+  const isMet=metSet.has(p.id);
   if(!isOpen) return `<div class="pri-card-wrap">
     <div class="pri-tile" onclick="toggleConsultCard('${p.id}',event)">
+      <span class="tile-met-dot${isMet?'':' empty'}" onclick="toggleMet('${p.id}',event)">${isMet?'✓':''}</span>
       <div class="pri-tile-avatar" style="background:${avatarBg};color:${avatarColor};">${initials(p.name)}</div>
       <div class="pri-tile-name">${esc(p.name)}</div>
       ${diag?`<div style="font-size:9px;color:var(--text3);font-style:italic;width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${esc(diag)}</div>`:''}
@@ -1008,6 +1033,7 @@ function buildConsultCard(p,i){
   </div>`;
   return `<div class="pri-card-wrap open">
     <div class="pri-card-open" onclick="toggleConsultCard('${p.id}',event)">
+      <button class="met-btn${isMet?' met':''}" onclick="toggleMet('${p.id}',event)">${isMet?'✓':''}</button>
       <div class="pri-avatar-sm" style="background:${avatarBg};color:${avatarColor};">${initials(p.name)}</div>
       <div class="pri-pt-name">${esc(p.name)}</div>
       ${ds?`<span class="dept-badge" style="background:${ds.bg};color:${ds.color};border:1px solid ${ds.border};">${dept}</span>`:''}
@@ -1050,7 +1076,9 @@ function renderConsult(){
         ${roundPts.map(p=>{
           const diag=getConsultDiag(p.id);const loc=getWardLoc(p.id);
           const dept=getConsultDept(p.id);const ds=dept?DEPT_STYLE[dept]:null;
+          const pMet=metSet.has(p.id);
           return `<div class="round-list-row">
+            <button class="met-btn${pMet?' met':''}" onclick="toggleMet('${p.id}',event)">${pMet?'✓':''}</button>
             <div style="flex:1;">
               <div class="round-list-name">${esc(p.name)}${ds?` <span class="dept-badge" style="background:${ds.bg};color:${ds.color};border:1px solid ${ds.border};">${dept}</span>`:''}</div>
               <div class="round-list-meta">${diag?`Dx: ${esc(diag)}`:''}${diag&&loc?' · ':''}${loc?`📍 ${esc(loc)}`:''}</div>
