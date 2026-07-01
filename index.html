@@ -547,11 +547,24 @@ function toggleMet(pid,e){
 }
 let roundMetSet=new Set(JSON.parse(localStorage.getItem('wq_round_met')||'[]'));
 function saveRoundMet(){localStorage.setItem('wq_round_met',JSON.stringify([...roundMetSet]));}
+let roundMetTs=JSON.parse(localStorage.getItem('wq_round_met_ts')||'{}');
+function saveRoundMetTs(){localStorage.setItem('wq_round_met_ts',JSON.stringify(roundMetTs));}
+const _roundTimers={};
+function scheduleRoundRemoval(pid){
+  const ts=roundMetTs[pid];if(!ts)return;
+  const rem=2*60*60*1000-(Date.now()-ts);
+  clearTimeout(_roundTimers[pid]);
+  if(rem<=0){removeFromRound(pid);return;}
+  _roundTimers[pid]=setTimeout(()=>removeFromRound(pid),rem);
+}
 function toggleRoundMet(pid,e){
   if(e)e.stopPropagation();
-  if(roundMetSet.has(pid))roundMetSet.delete(pid);else roundMetSet.add(pid);
-  saveRoundMet();
-  renderConsult();
+  if(roundMetSet.has(pid)){
+    roundMetSet.delete(pid);delete roundMetTs[pid];clearTimeout(_roundTimers[pid]);
+  } else {
+    roundMetSet.add(pid);roundMetTs[pid]=Date.now();scheduleRoundRemoval(pid);
+  }
+  saveRoundMet();saveRoundMetTs();renderConsult();
 }
 function openRoundPicker(){
   const overlay=document.getElementById('round-picker-overlay');
@@ -583,7 +596,8 @@ function confirmRoundPicker(){
 }
 function removeFromRound(pid){
   priRoundList=priRoundList.filter(id=>id!==pid);
-  savePRIRound();renderConsult();
+  roundMetSet.delete(pid);delete roundMetTs[pid];clearTimeout(_roundTimers[pid]);
+  savePRIRound();saveRoundMet();saveRoundMetTs();renderConsult();
 }
 async function setConsultDept(pid,dept){
   deptMap[pid]=getConsultDept(pid)===dept?null:dept;
@@ -1562,6 +1576,7 @@ if(_initWard!=='a')selectMenuBtn(_initWard);
 renderAdmitForm();
 loadAll().then(()=>{
   setupRealtime();
+  Object.keys(roundMetTs).forEach(pid=>scheduleRoundRemoval(pid));
   setInterval(()=>{
     const a=document.activeElement;
     if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'))return;
