@@ -474,13 +474,14 @@ function toggleSectionCollapse(sec){
   if(body)body.classList.toggle('collapsed',sectionCollapsed[sec]);
   if(chevron)chevron.style.transform=sectionCollapsed[sec]?'rotate(-90deg)':'rotate(0deg)';
 }
-const STAFF=['Direk','Voraporn','Thidarat','Pitch','Thunyaluck'];
+const STAFF=['Direk','Voraporn','Thidarat','Pitch','Thunyaluck','Damrong'];
 const STAFF_STYLE={
   'Direk':      {bg:'rgba(144,128,255,0.15)',border:'rgba(144,128,255,0.35)',color:'#9080ff'},
   'Voraporn':   {bg:'rgba(78,205,196,0.15)', border:'rgba(78,205,196,0.35)', color:'#4ecdc4'},
   'Thidarat':   {bg:'rgba(255,107,180,0.15)',border:'rgba(255,107,180,0.35)',color:'#ff6bb4'},
   'Pitch':      {bg:'rgba(255,165,50,0.15)', border:'rgba(255,165,50,0.35)', color:'#ffa532'},
   'Thunyaluck': {bg:'rgba(255,107,107,0.15)', border:'rgba(255,107,107,0.35)', color:'#ff6b6b'},
+  'Damrong':    {bg:'rgba(80,200,120,0.15)', border:'rgba(80,200,120,0.35)', color:'#50c878'},
 };
 let staffMap=JSON.parse(localStorage.getItem('wq_staff_map')||'{}');
 function saveStaffMap(){localStorage.setItem('wq_staff_map',JSON.stringify(staffMap));}
