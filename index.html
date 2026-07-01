@@ -208,6 +208,8 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .dtask-check svg{width:11px;height:11px;stroke:white;stroke-width:2.5;fill:none;opacity:0;transition:opacity .15s;}
 .dtask-check.sel svg{opacity:1;}
 .dtask-label{flex:1;font-size:13px;color:var(--text);line-height:1.4;}
+.dtask-toggle-btn{font-family:'Syne',sans-serif;font-size:10px;font-weight:700;letter-spacing:.06em;padding:3px 9px;border-radius:99px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text2);cursor:pointer;transition:all .15s;}
+.dtask-toggle-btn:hover{background:var(--purple-dim);color:var(--text);}
 
 .log-card{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:16px;}
 .log-title{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--text);letter-spacing:.04em;text-transform:uppercase;margin-bottom:14px;}
@@ -336,7 +338,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
   <div class="tabs">
     <button class="tab active" id="tab-ward" onclick="switchTab('ward')">📋 Ward</button>
     <button class="tab" id="tab-admit" onclick="switchTab('admit')">🏥 Admit</button>
-    <button class="tab" id="tab-log" onclick="switchTab('log')">📜 XP Log</button>
+    <button class="tab" id="tab-log" onclick="switchTab('log')">🩺 Consult</button>
   </div>
 
   <div class="round-bar">
@@ -395,7 +397,13 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
       <div class="admit-name-row">
         <input class="add-input" id="admit-name" placeholder="e.g. Mr John, Bed 4..." style="margin:0;" />
       </div>
-      <div class="admit-section-label"><span></span>Standard admission tasks</div>
+      <div class="admit-section-label" style="justify-content:space-between;">
+        <div style="display:flex;align-items:center;gap:6px;"><span></span>Standard admission tasks</div>
+        <div style="display:flex;gap:6px;">
+          <button class="dtask-toggle-btn" onclick="selectAllDefaultTasks()">All</button>
+          <button class="dtask-toggle-btn" onclick="clearAllDefaultTasks()">Clear</button>
+        </div>
+      </div>
       <div id="default-tasks-list"></div>
       <div style="margin-top:14px;">
         <div class="admit-section-label"><span></span>Additional tasks</div>
@@ -410,10 +418,11 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
   </div>
 
   <div id="view-log" style="display:none">
-    <div class="log-card">
-      <div class="log-title">XP History</div>
-      <div id="log-list"></div>
+    <div class="add-row" style="margin-bottom:14px;">
+      <input class="add-input" id="consult-name-input" placeholder="ชื่อผู้ป่วย Consult..." onkeydown="if(event.key==='Enter')addConsultPatient()" />
+      <button class="add-btn" onclick="addConsultPatient()">+ Add</button>
     </div>
+    <div id="consult-list"></div>
   </div>
 </div>
 
@@ -474,13 +483,14 @@ function toggleSectionCollapse(sec){
   if(body)body.classList.toggle('collapsed',sectionCollapsed[sec]);
   if(chevron)chevron.style.transform=sectionCollapsed[sec]?'rotate(-90deg)':'rotate(0deg)';
 }
-const STAFF=['Direk','Voraporn','Thidarat','Pitch','Thunyaluck'];
+const STAFF=['Direk','Voraporn','Thidarat','Pitch','Thunyaluck','Damrong'];
 const STAFF_STYLE={
   'Direk':      {bg:'rgba(144,128,255,0.15)',border:'rgba(144,128,255,0.35)',color:'#9080ff'},
   'Voraporn':   {bg:'rgba(78,205,196,0.15)', border:'rgba(78,205,196,0.35)', color:'#4ecdc4'},
   'Thidarat':   {bg:'rgba(255,107,180,0.15)',border:'rgba(255,107,180,0.35)',color:'#ff6bb4'},
   'Pitch':      {bg:'rgba(255,165,50,0.15)', border:'rgba(255,165,50,0.35)', color:'#ffa532'},
   'Thunyaluck': {bg:'rgba(255,107,107,0.15)', border:'rgba(255,107,107,0.35)', color:'#ff6b6b'},
+  'Damrong':    {bg:'rgba(80,200,120,0.15)', border:'rgba(80,200,120,0.35)', color:'#50c878'},
 };
 let staffMap=JSON.parse(localStorage.getItem('wq_staff_map')||'{}');
 function saveStaffMap(){localStorage.setItem('wq_staff_map',JSON.stringify(staffMap));}
@@ -841,6 +851,8 @@ function toggleDefaultTask(i){
   if(admitDefaultSel.has(i))admitDefaultSel.delete(i);else admitDefaultSel.add(i);
   renderAdmitForm();
 }
+function selectAllDefaultTasks(){admitDefaultSel=new Set(DEFAULT_ADMIT_TASKS.map((_,i)=>i));renderAdmitForm();}
+function clearAllDefaultTasks(){admitDefaultSel=new Set();renderAdmitForm();}
 function addCustomAdmitTask(){
   const inp=document.getElementById('custom-task-input');
   const val=inp.value.trim();if(!val)return;
@@ -848,16 +860,25 @@ function addCustomAdmitTask(){
 }
 function removeCustomAdmitTask(i){admitCustomTasks.splice(i,1);renderAdmitForm();}
 
-function renderLog(){
-  const el=document.getElementById('log-list');
-  if(!xpLog.length){el.innerHTML='<div class="empty" style="padding:1rem 0">No XP earned yet.</div>';return;}
-  el.innerHTML=xpLog.map(e=>`
-    <div class="log-row">
-      <span class="log-reason">${esc(e.reason)}</span>
-      <span class="log-time">${e.time}</span>
-      <span class="log-xp">+${e.xp}</span>
-    </div>
-  `).join('');
+function renderConsult(){
+  const el=document.getElementById('consult-list');
+  if(!el)return;
+  const pts=patients.filter(p=>p.ward==='consult');
+  if(!pts.length){el.innerHTML='<div class="empty" style="padding:1rem 0"><div class="empty-icon">🩺</div>No consult patients yet.</div>';return;}
+  el.innerHTML=pts.map((p,i)=>buildPatientCard(p,i)).join('');
+}
+
+async function addConsultPatient(){
+  const inp=document.getElementById('consult-name-input');
+  const name=(inp.value||'').trim();
+  if(!name)return;
+  inp.value='';
+  const id=uid();
+  sectionMap[id]='nonward';saveSectionMap();
+  const {error}=await sb.from('patients').insert({id,name,open:true,ward:'consult'});
+  if(error){alert('Error: '+error.message);return;}
+  patients.push({id,name,open:true,ward:'consult',tasks:[]});
+  renderConsult();
 }
 
 function selectMenuBtn(btn){
@@ -886,7 +907,7 @@ function switchTab(tab){
     document.getElementById('view-'+t).style.display=t===tab?'':'none';
     document.getElementById('tab-'+t).className='tab'+(t===tab?' active':'');
   });
-  if(tab==='log')renderLog();
+  if(tab==='log')renderConsult();
   if(tab==='admit'){setAdmitWard(activeWard);renderAdmitForm();}
 }
 
@@ -1034,7 +1055,7 @@ async function loadAll(){
   pts.forEach(p=>{if(p.staff!==undefined){staffMap[p.id]=p.staff||null;staffUpdated=true;}});
   if(staffUpdated)saveStaffMap();
   setSyncDot('online');
-  renderXP();renderSummary();renderWard();
+  renderXP();renderSummary();renderWard();renderConsult();
   document.getElementById('loading-screen').classList.add('hidden');
 }
 
