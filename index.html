@@ -85,12 +85,16 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .staff-pick-wrap{display:flex;flex-wrap:wrap;gap:5px;padding:6px 0 3px;}
 .staff-pick-btn{font-size:10px;font-family:'Syne',sans-serif;font-weight:700;padding:4px 10px;border-radius:99px;border:1.5px solid;cursor:pointer;transition:all .18s;background:transparent;letter-spacing:.03em;}
 .section-divider{margin:18px 0 4px;border-top:0.5px solid var(--border);}
-.pri-grid{display:grid;grid-template-columns:1fr;gap:6px;}
+.pri-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(82px,1fr));gap:8px;}
 .pri-card-wrap{min-width:0;}
 .pri-card-wrap.open{grid-column:1/-1;}
-.pri-card{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);cursor:pointer;transition:background .15s;user-select:none;}
-.pri-card.open{border-radius:var(--radius) var(--radius) 0 0;border-bottom-color:transparent;}
-.pri-card:hover{background:var(--card-hover);}
+.pri-tile{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;transition:background .15s;user-select:none;text-align:center;}
+.pri-tile:hover{background:var(--card-hover);}
+.pri-tile-avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Syne',sans-serif;font-size:13px;font-weight:800;flex-shrink:0;}
+.pri-tile-name{font-size:11px;font-weight:700;color:var(--text);width:100%;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.3;}
+.pri-tile-count{font-size:10px;color:var(--text3);}
+.pri-tile-done{font-size:10px;color:var(--green,#50c878);font-weight:700;}
+.pri-card-open{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius) var(--radius) 0 0;border-bottom-color:transparent;}
 .pri-avatar-sm{width:30px;height:30px;border-radius:50%;background:var(--purple-dim);color:var(--purple);font-family:'Syne',sans-serif;font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .pri-pt-name{flex:1;font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .pri-task-badge{font-size:11px;color:var(--text3);min-width:28px;text-align:right;}
@@ -755,18 +759,30 @@ function togglePRICard(pid,e){
 }
 function buildPRICard(p,i){
   const done=p.tasks.filter(t=>t.done).length,total=p.tasks.length;
+  const allDone=total>0&&done===total;
   const staff=getStaff(p.id);const staffSt=staff?STAFF_STYLE[staff]:null;
+  const avatarBg=staffSt?staffSt.bg:'var(--purple-dim)';
+  const avatarColor=staffSt?staffSt.color:'var(--purple)';
   const isOpen=priOpenSet.has(p.id);
-  return `<div class="pri-card-wrap${isOpen?' open':''}">
-    <div class="pri-card${isOpen?' open':''}" onclick="togglePRICard('${p.id}',event)">
-      <div class="pri-avatar-sm">${initials(p.name)}</div>
+  if(!isOpen) return `<div class="pri-card-wrap">
+    <div class="pri-tile" onclick="togglePRICard('${p.id}',event)">
+      <div class="pri-tile-avatar" style="background:${avatarBg};color:${avatarColor};">${initials(p.name)}</div>
+      <div class="pri-tile-name">${esc(p.name)}</div>
+      ${allDone?`<span class="pri-tile-done">✓ Done</span>`
+        :total?`<span class="pri-tile-count">${done}/${total}</span>`
+        :`<span class="pri-tile-count">—</span>`}
+    </div>
+  </div>`;
+  return `<div class="pri-card-wrap open">
+    <div class="pri-card-open" onclick="togglePRICard('${p.id}',event)">
+      <div class="pri-avatar-sm" style="background:${avatarBg};color:${avatarColor};">${initials(p.name)}</div>
       <div class="pri-pt-name">${esc(p.name)}</div>
       <span class="pri-task-badge">${total?done+'/'+total:'—'}</span>
       <button class="staff-assign-btn" style="padding:5px 8px;font-size:11px;" onclick="event.stopPropagation();toggleStaffPicker('${p.id}')">${staffSt?`<span style="color:${staffSt.color};">👤</span>`:'👤'}</button>
       <button class="edit-pt-btn" onclick="event.stopPropagation();editPatientName('${p.id}','${esc(p.name)}')">✏️</button>
       <button class="del-pt-btn" onclick="event.stopPropagation();delPatient('${p.id}')">✕</button>
     </div>
-    ${isOpen?`<div class="pri-tasks-panel">
+    <div class="pri-tasks-panel">
       ${p.tasks.map(t=>`<div class="task-item">
         <button class="check-btn ${t.done?'done':''}" onclick="toggleTask('${p.id}','${t.id}')"><svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg></button>
         <span class="task-text ${t.done?'done':''}">${esc(t.text)}</span>
@@ -781,7 +797,7 @@ function buildPRICard(p,i){
         ${STAFF.map(s=>{const st=STAFF_STYLE[s];const active=getStaff(p.id)===s;return `<button class="staff-pick-btn" style="color:${active?'#fff':st.color};border-color:${st.border};background:${active?st.color:'transparent'};" onclick="setStaff('${p.id}','${s}')">${s}</button>`;}).join('')}
         ${getStaff(p.id)?`<button class="staff-pick-btn" style="color:var(--text3);border-color:var(--border);" onclick="setStaff('${p.id}','${getStaff(p.id)}')">✕ None</button>`:''}
       </div>
-    </div>`:''}
+    </div>
   </div>`;
 }
 function renderPRIWard(){
@@ -808,7 +824,6 @@ function renderPRIWard(){
     </div><div class="section-body${isCol?' collapsed':''}" id="sbody-${colKey}"><div class="pri-grid">${unassigned.map((p,i)=>buildPRICard(p,i)).join('')}</div></div>`;
   }
   list.innerHTML=html;
-  applyPRILandscape();
 }
 
 function renderWard(){
@@ -1422,12 +1437,6 @@ document.getElementById('date-label').textContent=new Date().toLocaleDateString(
 
 
 
-function applyPRILandscape(){
-  const isLandscape=window.innerWidth>window.innerHeight;
-  document.querySelectorAll('.pri-grid').forEach(g=>g.classList.toggle('landscape',isLandscape));
-}
-window.addEventListener('resize',applyPRILandscape);
-window.addEventListener('orientationchange',()=>setTimeout(applyPRILandscape,150));
 
 const _initWard=localStorage.getItem('wq_active_ward')||'a';
 if(_initWard!=='a')selectMenuBtn(_initWard);
