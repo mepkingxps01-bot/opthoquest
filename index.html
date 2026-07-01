@@ -336,7 +336,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
   <div class="tabs">
     <button class="tab active" id="tab-ward" onclick="switchTab('ward')">📋 Ward</button>
     <button class="tab" id="tab-admit" onclick="switchTab('admit')">🏥 Admit</button>
-    <button class="tab" id="tab-log" onclick="switchTab('log')">📜 XP Log</button>
+    <button class="tab" id="tab-log" onclick="switchTab('log')">🩺 Consult</button>
   </div>
 
   <div class="round-bar">
@@ -410,10 +410,11 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
   </div>
 
   <div id="view-log" style="display:none">
-    <div class="log-card">
-      <div class="log-title">XP History</div>
-      <div id="log-list"></div>
+    <div class="add-row" style="margin-bottom:14px;">
+      <input class="add-input" id="consult-name-input" placeholder="ชื่อผู้ป่วย Consult..." onkeydown="if(event.key==='Enter')addConsultPatient()" />
+      <button class="add-btn" onclick="addConsultPatient()">+ Add</button>
     </div>
+    <div id="consult-list"></div>
   </div>
 </div>
 
@@ -849,16 +850,25 @@ function addCustomAdmitTask(){
 }
 function removeCustomAdmitTask(i){admitCustomTasks.splice(i,1);renderAdmitForm();}
 
-function renderLog(){
-  const el=document.getElementById('log-list');
-  if(!xpLog.length){el.innerHTML='<div class="empty" style="padding:1rem 0">No XP earned yet.</div>';return;}
-  el.innerHTML=xpLog.map(e=>`
-    <div class="log-row">
-      <span class="log-reason">${esc(e.reason)}</span>
-      <span class="log-time">${e.time}</span>
-      <span class="log-xp">+${e.xp}</span>
-    </div>
-  `).join('');
+function renderConsult(){
+  const el=document.getElementById('consult-list');
+  if(!el)return;
+  const pts=patients.filter(p=>p.ward==='consult');
+  if(!pts.length){el.innerHTML='<div class="empty" style="padding:1rem 0"><div class="empty-icon">🩺</div>No consult patients yet.</div>';return;}
+  el.innerHTML=pts.map((p,i)=>buildPatientCard(p,i)).join('');
+}
+
+async function addConsultPatient(){
+  const inp=document.getElementById('consult-name-input');
+  const name=(inp.value||'').trim();
+  if(!name)return;
+  inp.value='';
+  const id=uid();
+  sectionMap[id]='nonward';saveSectionMap();
+  const {error}=await sb.from('patients').insert({id,name,open:true,ward:'consult'});
+  if(error){alert('Error: '+error.message);return;}
+  patients.push({id,name,open:true,ward:'consult',tasks:[]});
+  renderConsult();
 }
 
 function selectMenuBtn(btn){
@@ -887,7 +897,7 @@ function switchTab(tab){
     document.getElementById('view-'+t).style.display=t===tab?'':'none';
     document.getElementById('tab-'+t).className='tab'+(t===tab?' active':'');
   });
-  if(tab==='log')renderLog();
+  if(tab==='log')renderConsult();
   if(tab==='admit'){setAdmitWard(activeWard);renderAdmitForm();}
 }
 
@@ -1035,7 +1045,7 @@ async function loadAll(){
   pts.forEach(p=>{if(p.staff!==undefined){staffMap[p.id]=p.staff||null;staffUpdated=true;}});
   if(staffUpdated)saveStaffMap();
   setSyncDot('online');
-  renderXP();renderSummary();renderWard();
+  renderXP();renderSummary();renderWard();renderConsult();
   document.getElementById('loading-screen').classList.add('hidden');
 }
 
