@@ -92,7 +92,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .pri-card-wrap{min-width:0;}
 .pri-card-wrap.open{grid-column:1/-1;}
 .pri-tile{background:var(--card);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 6px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;transition:background .15s;user-select:none;text-align:center;position:relative;}
-.met-btn{width:18px;height:18px;border-radius:50%;border:1.5px solid var(--border2);background:transparent;cursor:pointer;flex-shrink:0;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;transition:all .15s;color:transparent;padding:0;line-height:1;}
+.met-btn{width:18px;height:18px;min-width:18px;min-height:18px;border-radius:50%;border:1.5px solid var(--border2);background:transparent;cursor:pointer;flex-shrink:0;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;transition:all .15s;color:transparent;padding:0;line-height:1;align-self:center;box-sizing:content-box;}
 .met-btn.met{border-color:var(--green);background:var(--green-dim);color:var(--green);}
 .tile-met-dot{position:absolute;top:4px;right:4px;width:16px;height:16px;border-radius:50%;background:var(--green);color:#000;font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2;}
 .tile-met-dot.empty{background:transparent;border:1.5px solid var(--border2);}
@@ -541,6 +541,14 @@ function toggleMet(pid,e){
   if(vLog&&vLog.style.display!=='none')renderConsult();
   else if(activeWard==='pri')renderPRIWard();
   else renderWard();
+}
+let roundMetSet=new Set(JSON.parse(localStorage.getItem('wq_round_met')||'[]'));
+function saveRoundMet(){localStorage.setItem('wq_round_met',JSON.stringify([...roundMetSet]));}
+function toggleRoundMet(pid,e){
+  if(e)e.stopPropagation();
+  if(roundMetSet.has(pid))roundMetSet.delete(pid);else roundMetSet.add(pid);
+  saveRoundMet();
+  renderConsult();
 }
 function openRoundPicker(){
   const overlay=document.getElementById('round-picker-overlay');
@@ -1076,9 +1084,9 @@ function renderConsult(){
         ${roundPts.map(p=>{
           const diag=getConsultDiag(p.id);const loc=getWardLoc(p.id);
           const dept=getConsultDept(p.id);const ds=dept?DEPT_STYLE[dept]:null;
-          const pMet=metSet.has(p.id);
+          const pMet=roundMetSet.has(p.id);
           return `<div class="round-list-row">
-            <button class="met-btn${pMet?' met':''}" onclick="toggleMet('${p.id}',event)">${pMet?'✓':''}</button>
+            <button class="met-btn${pMet?' met':''}" onclick="toggleRoundMet('${p.id}',event)">${pMet?'✓':''}</button>
             <div style="flex:1;">
               <div class="round-list-name">${esc(p.name)}${ds?` <span class="dept-badge" style="background:${ds.bg};color:${ds.color};border:1px solid ${ds.border};">${dept}</span>`:''}</div>
               <div class="round-list-meta">${diag?`Dx: ${esc(diag)}`:''}${diag&&loc?' · ':''}${loc?`📍 ${esc(loc)}`:''}</div>
