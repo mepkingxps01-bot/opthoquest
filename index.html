@@ -867,11 +867,13 @@ function buildPRICard(p,i){
   const avatarColor=staffSt?staffSt.color:'var(--purple)';
   const isOpen=priOpenSet.has(p.id);
   const isMet=metSet.has(p.id);
+  const diag=getConsultDiag(p.id);
   if(!isOpen) return `<div class="pri-card-wrap">
     <div class="pri-tile${isMet?' met-tile':''}" onclick="togglePRICard('${p.id}',event)">
       <span class="tile-met-dot${isMet?'':' empty'}" onclick="toggleMet('${p.id}',event)">${isMet?'✓':''}</span>
       <div class="pri-tile-avatar" style="background:${avatarBg};color:${avatarColor};">${initials(p.name)}</div>
       <div class="pri-tile-name">${esc(p.name)}</div>
+      ${diag?`<div style="font-size:10px;color:var(--text3);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:90%;padding:0 4px;">${esc(diag)}</div>`:''}
       ${allDone?`<span class="pri-tile-done">✓ Done</span>`
         :total?`<span class="pri-tile-count">${done}/${total}</span>`
         :`<span class="pri-tile-count">—</span>`}
@@ -888,6 +890,9 @@ function buildPRICard(p,i){
       <button class="del-pt-btn" onclick="event.stopPropagation();delPatient('${p.id}')">✕</button>
     </div>
     <div class="pri-tasks-panel">
+      <div class="add-row" style="margin-bottom:8px;">
+        <input id="pdiag-${p.id}" class="add-input" placeholder="Diagnosis..." value="${esc(diag)}" oninput="onDiagInput('${p.id}',this.value)" onclick="event.stopPropagation()" style="flex:1;" />
+      </div>
       ${p.tasks.map(t=>`<div class="task-item">
         <button class="check-btn ${t.done?'done':''}" onclick="toggleTask('${p.id}','${t.id}')"><svg viewBox="0 0 12 10"><polyline points="1,5 4.5,9 11,1"/></svg></button>
         <span class="task-text ${t.done?'done':''}">${esc(t.text)}</span>
@@ -907,7 +912,7 @@ function buildPRICard(p,i){
 }
 function renderPRIWard(){
   const activeId=document.activeElement?.id||'';
-  if(activeId.startsWith('ti-'))return;
+  if(activeId.startsWith('ti-')||activeId.startsWith('pdiag-'))return;
   const openPicker=document.querySelector('.move-picker[style*="display: flex"],.staff-pick-wrap[style*="display: flex"]');
   if(openPicker)return;
   const list=document.getElementById('ward-list');
