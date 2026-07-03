@@ -345,6 +345,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
         <button class="menu-btn" id="menu-btn-c" onclick="selectMenuBtn('c')">C</button>
         <button class="menu-btn" id="menu-btn-d" onclick="selectMenuBtn('d')">D</button>
         <button class="menu-btn" id="menu-btn-pri" onclick="selectMenuBtn('pri')">PRI</button>
+        <button class="menu-btn" id="menu-btn-dc" onclick="selectMenuBtn('dc')" style="color:#fbbf24;">DC</button>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
         <button class="theme-btn" id="theme-btn" onclick="toggleTheme()">☀️</button>
@@ -912,7 +913,7 @@ function renderWard(){
   if(activeWard==='pri'){renderPRIWard();return;}
   const list=document.getElementById('ward-list');
   const wardPts=patients.filter(p=>(p.ward||'a')===activeWard);
-  const wardLabel='Ward '+activeWard.toUpperCase();
+  const wardLabel=activeWard==='dc'?'🏥 Wait for DC':'Ward '+activeWard.toUpperCase();
   const header=`<div class="ward-header"><span>${wardLabel}</span><span class="ward-count">${wardPts.length} patient${wardPts.length!==1?'s':''}</span></div>`;
   if(!wardPts.length){
     list.innerHTML=header+'<div class="empty"><div class="empty-icon">🏥</div>No patients in '+wardLabel+'.<br>Use the Admit tab to add one.</div>';
@@ -1189,8 +1190,9 @@ async function addConsultPatient(){
 function selectMenuBtn(btn){
   activeWard=btn;
   localStorage.setItem('wq_active_ward',btn);
-  ['a','b','c','d','pri'].forEach(b=>{
-    document.getElementById('menu-btn-'+b).className='menu-btn'+(b===btn?' active':'');
+  ['a','b','c','d','pri','dc'].forEach(b=>{
+    const el=document.getElementById('menu-btn-'+b);
+    if(el)el.className='menu-btn'+(b===btn?' active':'');
   });
   renderXP();renderSummary();renderWard();renderHandover();
 }
