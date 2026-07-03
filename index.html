@@ -1124,7 +1124,7 @@ function renderConsult(){
             <div class="round-list-name">${esc(p.name)}${ds?` <span class="dept-badge" style="background:${ds.bg};color:${ds.color};border:1px solid ${ds.border};">${dept}</span>`:''}</div>
             <div class="round-list-meta">${diag?`Dx: ${esc(diag)}`:''}${diag&&loc?' · ':''}${loc?`📍 ${esc(loc)}`:''}</div>
           </div>
-          <textarea class="round-plan-input" placeholder="Plan..." oninput="onRoundPlanInput('${p.id}',this.value);autoResize(this)" onclick="event.stopPropagation()">${esc(plan)}</textarea>
+          <textarea id="rplan-${p.id}" class="round-plan-input" placeholder="Plan..." oninput="onRoundPlanInput('${p.id}',this.value);autoResize(this)" onclick="event.stopPropagation()">${esc(plan)}</textarea>
           <button class="del-pt-btn" onclick="removeFromRound('${p.id}')">✕</button>
         </div>`;
       }).join(''):`<div style="font-size:12px;color:var(--text3);padding:6px 0;">No patients in round yet. Tap 🩺 Round to add.</div>`}
@@ -1367,11 +1367,19 @@ async function loadAll(){
       if(meta.dept)Object.assign(deptMap,meta.dept);
       if(meta.diag)Object.assign(diagMap,meta.diag);
       if(meta.wardloc)Object.assign(wardLocMap,meta.wardloc);
-      if(meta.roundPlan)Object.assign(roundPlanMap,meta.roundPlan);
+      if(meta.roundPlan){
+        Object.assign(roundPlanMap,meta.roundPlan);
+        saveRoundPlanMap();
+        // Patch plan textareas in place so focused ones aren't disrupted
+        Object.entries(meta.roundPlan).forEach(([pid,val])=>{
+          const ta=document.getElementById('rplan-'+pid);
+          if(ta&&document.activeElement!==ta)ta.value=val||'';
+        });
+      }
       if(meta.roundList){priRoundList=meta.roundList;localStorage.setItem('wq_pri_round',JSON.stringify(priRoundList));}
       if(meta.roundMet){roundMetSet=new Set(meta.roundMet);localStorage.setItem('wq_round_met',JSON.stringify([...roundMetSet]));}
       if(meta.roundMetTs){Object.assign(roundMetTs,meta.roundMetTs);saveRoundMetTs();}
-      saveDeptMap();saveDiagMap();saveWardLocMap();saveRoundPlanMap();
+      saveDeptMap();saveDiagMap();saveWardLocMap();
     }catch(e){}
   } else {
     // No entry yet — push local data to bootstrap sync on other devices
@@ -1623,11 +1631,7 @@ renderAdmitForm();
 loadAll().then(()=>{
   setupRealtime();
   Object.keys(roundMetTs).forEach(pid=>scheduleRoundRemoval(pid));
-  setInterval(()=>{
-    const a=document.activeElement;
-    if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'))return;
-    loadAll();
-  },30000);
+  setInterval(()=>loadAll(),15000);
 });
 // Strip cache-bust param added by checkHtmlVersion
 if(new URLSearchParams(location.search).has('_')){history.replaceState(null,'',location.pathname);}
