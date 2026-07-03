@@ -449,7 +449,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 </div>
 <div class="round-picker-overlay" id="dc-picker-overlay" style="display:none" onclick="closeDCPicker(event)">
   <div class="round-picker-sheet" onclick="event.stopPropagation()">
-    <div class="round-picker-title">🔔 Select Patients — Wait for notify DC</div>
+    <div class="round-picker-title">🏥 Select Patients — Wait for DC</div>
     <div id="dc-picker-list"></div>
     <button class="round-add-btn" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);" onclick="confirmDCPicker()">✓ Done</button>
   </div>
@@ -620,19 +620,11 @@ function removeFromRound(pid){
   roundMetSet.delete(pid);delete roundMetTs[pid];clearTimeout(_roundTimers[pid]);
   savePRIRound();saveRoundMet();saveRoundMetTs();renderConsult();
 }
-let dcNotifyList=JSON.parse(localStorage.getItem('wq_dc_notify')||'[]');
-function saveDCNotify(){localStorage.setItem('wq_dc_notify',JSON.stringify(dcNotifyList));}
-let dcDoneSet=new Set(JSON.parse(localStorage.getItem('wq_dc_done')||'[]'));
-function saveDCDone(){localStorage.setItem('wq_dc_done',JSON.stringify([...dcDoneSet]));}
-function toggleDCDone(pid,e){
-  if(e)e.stopPropagation();
-  if(dcDoneSet.has(pid))dcDoneSet.delete(pid);else dcDoneSet.add(pid);
-  saveDCDone();renderConsult();
-}
-function removeFromDCNotify(pid){
-  dcNotifyList=dcNotifyList.filter(id=>id!==pid);
-  dcDoneSet.delete(pid);
-  saveDCNotify();saveDCDone();renderConsult();
+let dcWaitList=JSON.parse(localStorage.getItem('wq_dc_wait')||localStorage.getItem('wq_dc_notify')||'[]');
+function saveDCWait(){localStorage.setItem('wq_dc_wait',JSON.stringify(dcWaitList));}
+function removeFromDCWait(pid){
+  dcWaitList=dcWaitList.filter(id=>id!==pid);
+  saveDCWait();renderConsult();
 }
 function openDCPicker(){
   const overlay=document.getElementById('dc-picker-overlay');
@@ -640,14 +632,14 @@ function openDCPicker(){
   const pts=patients.filter(p=>p.ward==='ward'||p.ward==='consult');
   if(!pts.length){listEl.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">No patients yet.</div>';overlay.style.display='flex';return;}
   listEl.innerHTML=pts.map(p=>{
-    const checked=dcNotifyList.includes(p.id)?'checked':'';
+    const checked=dcWaitList.includes(p.id)?'checked':'';
     const dept=getConsultDept(p.id);const ds=dept?DEPT_STYLE[dept]:null;
     const loc=getWardLoc(p.id);
     return `<div class="round-picker-item">
       <input type="checkbox" class="round-picker-cb" id="dcpcb-${p.id}" ${checked} style="accent-color:#fbbf24;" />
       <div style="flex:1;">
         <div style="font-size:13px;font-weight:700;color:var(--text);">${esc(p.name)}${ds?` <span style="font-size:9px;font-weight:800;padding:1px 6px;border-radius:99px;background:${ds.bg};color:${ds.color};border:1px solid ${ds.border};">${dept}</span>`:''}</div>
-        ${loc?`<div style="font-size:11px;color:var(--teal);">📍 ${esc(loc)}</div>`:''}
+        ${loc?`<div style="font-size:11px;color:var(--teal);">#${esc(loc)}</div>`:''}
       </div>
     </div>`;
   }).join('');
@@ -656,8 +648,8 @@ function openDCPicker(){
 function closeDCPicker(e){document.getElementById('dc-picker-overlay').style.display='none';}
 function confirmDCPicker(){
   const pts=patients.filter(p=>p.ward==='ward'||p.ward==='consult');
-  dcNotifyList=pts.filter(p=>document.getElementById('dcpcb-'+p.id)?.checked).map(p=>p.id);
-  saveDCNotify();
+  dcWaitList=pts.filter(p=>document.getElementById('dcpcb-'+p.id)?.checked).map(p=>p.id);
+  saveDCWait();
   closeDCPicker();
   renderConsult();
 }
@@ -1179,29 +1171,24 @@ function renderConsult(){
   // Render DC notify list
   const dcEl=document.getElementById('dc-notify-list');
   if(dcEl){
-    const allDcPts=dcNotifyList.map(id=>patients.find(p=>p.id===id)).filter(Boolean);
-    const waitingPts=allDcPts.filter(p=>!dcDoneSet.has(p.id));
-    const donePts=allDcPts.filter(p=>dcDoneSet.has(p.id));
-    function buildDCRow(p,isDone){
-      const dept=getConsultDept(p.id);const ds=dept?DEPT_STYLE[dept]:null;
-      const loc=getWardLoc(p.id);
-      return `<div class="round-list-row">
-        <button class="met-btn${isDone?' met':''}" onclick="toggleDCDone('${p.id}',event)" style="${isDone?'border-color:#fbbf24;background:rgba(251,191,36,0.15);color:#fbbf24;':''}">${isDone?'✓':''}</button>
-        <div style="flex:1;min-width:0;display:flex;align-items:center;flex-wrap:wrap;gap:5px;">
-          <span class="round-list-name" style="${isDone?'text-decoration:line-through;opacity:.6;':''}">${esc(p.name)}</span>
-          ${ds?`<span class="dept-badge" style="background:${ds.bg};color:${ds.color};border:1px solid ${ds.border};">${dept}</span>`:''}
-          ${loc?`<span class="ward-loc-tag">#${esc(loc)}</span>`:''}
-        </div>
-        <button class="del-pt-btn" onclick="removeFromDCNotify('${p.id}')">✕</button>
-      </div>`;
-    }
+    const dcPts=dcWaitList.map(id=>patients.find(p=>p.id===id)).filter(Boolean);
     dcEl.innerHTML=`<div class="dc-notify-section">
-      <div class="round-list-hdr"><span class="dc-notify-title">🔔 Wait for notify DC</span>${waitingPts.length?`<span class="ward-count">${waitingPts.length} pt${waitingPts.length!==1?'s':''}</span>`:''}</div>
-      ${waitingPts.length?waitingPts.map(p=>buildDCRow(p,false)).join(''):`<div style="font-size:12px;color:var(--text3);padding:6px 0;">No patients waiting. Tap 🔔 DC to add.</div>`}
-    </div>${donePts.length?`<div class="dc-done-section">
-      <div class="round-list-hdr"><span class="dc-done-title">✅ Done</span><span class="ward-count">${donePts.length} pt${donePts.length!==1?'s':''}</span></div>
-      ${donePts.map(p=>buildDCRow(p,true)).join('')}
-    </div>`:''}`;
+      <div class="round-list-hdr"><span class="dc-notify-title">🏥 Wait for DC</span>${dcPts.length?`<span class="ward-count">${dcPts.length} pt${dcPts.length!==1?'s':''}</span>`:''}</div>
+      ${dcPts.length?dcPts.map(p=>{
+        const dept=getConsultDept(p.id);const ds=dept?DEPT_STYLE[dept]:null;
+        const loc=getWardLoc(p.id);
+        return `<div class="round-list-row">
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;flex-wrap:wrap;gap:5px;">
+              <span class="round-list-name">${esc(p.name)}</span>
+              ${ds?`<span class="dept-badge" style="background:${ds.bg};color:${ds.color};border:1px solid ${ds.border};">${dept}</span>`:''}
+            </div>
+          </div>
+          <input class="round-plan-input" style="min-height:28px;max-width:130px;" placeholder="#ward" value="${esc(loc)}" oninput="onWardLocInput('${p.id}',this.value)" onclick="event.stopPropagation()" />
+          <button class="del-pt-btn" onclick="removeFromDCWait('${p.id}')">✕</button>
+        </div>`;
+      }).join(''):`<div style="font-size:12px;color:var(--text3);padding:6px 0;">No patients. Tap 🔔 DC to add.</div>`}
+    </div>`;
   }
   const pts=patients.filter(p=>p.ward==='consult');
   if(!pts.length){el.innerHTML='<div class="empty" style="padding:1rem 0"><div class="empty-icon">🩺</div>No consult patients yet.</div>';return;}
