@@ -345,7 +345,6 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
         <button class="menu-btn" id="menu-btn-c" onclick="selectMenuBtn('c')">C</button>
         <button class="menu-btn" id="menu-btn-d" onclick="selectMenuBtn('d')">D</button>
         <button class="menu-btn" id="menu-btn-pri" onclick="selectMenuBtn('pri')">PRI</button>
-        <button class="menu-btn" id="menu-btn-dc" onclick="selectMenuBtn('dc')" style="color:#fbbf24;">DC</button>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
         <button class="theme-btn" id="theme-btn" onclick="toggleTheme()">☀️</button>
@@ -543,7 +542,7 @@ function saveRoundPlanMap(){localStorage.setItem('wq_round_plan',JSON.stringify(
 function getRoundPlan(pid){return roundPlanMap[pid]||'';}
 const _planTimers={};
 function onRoundPlanInput(pid,val){roundPlanMap[pid]=val;saveRoundPlanMap();clearTimeout(_planTimers[pid]);_planTimers[pid]=setTimeout(syncConsultMeta,800);}
-function syncConsultMeta(){sb.from('settings').upsert({key:'consult_meta',value:JSON.stringify({dept:deptMap,diag:diagMap,wardloc:wardLocMap,roundPlan:roundPlanMap})}).then(({error})=>{if(error)console.warn('syncConsultMeta:',error.message);});}
+function syncConsultMeta(){sb.from('settings').upsert({key:'consult_meta',value:JSON.stringify({dept:deptMap,diag:diagMap,wardloc:wardLocMap,roundPlan:roundPlanMap,roundList:priRoundList,roundMet:[...roundMetSet],roundMetTs})}).then(({error})=>{if(error)console.warn('syncConsultMeta:',error.message);});}
 const _diagTimers={},_locTimers={};
 function onDiagInput(pid,val){diagMap[pid]=val;saveDiagMap();clearTimeout(_diagTimers[pid]);_diagTimers[pid]=setTimeout(syncConsultMeta,800);}
 function onWardLocInput(pid,val){wardLocMap[pid]=val;saveWardLocMap();clearTimeout(_locTimers[pid]);_locTimers[pid]=setTimeout(syncConsultMeta,800);}
@@ -579,7 +578,7 @@ function toggleRoundMet(pid,e){
   } else {
     roundMetSet.add(pid);roundMetTs[pid]=Date.now();scheduleRoundRemoval(pid);
   }
-  saveRoundMet();saveRoundMetTs();renderConsult();
+  saveRoundMet();saveRoundMetTs();syncConsultMeta();renderConsult();
 }
 function openRoundPicker(){
   const overlay=document.getElementById('round-picker-overlay');
@@ -605,14 +604,14 @@ function closeRoundPicker(e){document.getElementById('round-picker-overlay').sty
 function confirmRoundPicker(){
   const pts=patients.filter(p=>p.ward==='consult');
   priRoundList=pts.filter(p=>document.getElementById('rpcb-'+p.id)?.checked).map(p=>p.id);
-  savePRIRound();
+  savePRIRound();syncConsultMeta();
   closeRoundPicker();
   renderConsult();
 }
 function removeFromRound(pid){
   priRoundList=priRoundList.filter(id=>id!==pid);
   roundMetSet.delete(pid);delete roundMetTs[pid];clearTimeout(_roundTimers[pid]);
-  savePRIRound();saveRoundMet();saveRoundMetTs();renderConsult();
+  savePRIRound();saveRoundMet();saveRoundMetTs();syncConsultMeta();renderConsult();
 }
 function setConsultDept(pid,dept){
   deptMap[pid]=getConsultDept(pid)===dept?null:dept;
@@ -1191,7 +1190,7 @@ async function addConsultPatient(){
 function selectMenuBtn(btn){
   activeWard=btn;
   localStorage.setItem('wq_active_ward',btn);
-  ['a','b','c','d','pri','dc'].forEach(b=>{
+  ['a','b','c','d','pri'].forEach(b=>{
     const el=document.getElementById('menu-btn-'+b);
     if(el)el.className='menu-btn'+(b===btn?' active':'');
   });
@@ -1340,13 +1339,15 @@ async function loadAll(){
     pts=pts.filter(p=>p.id!==pid);
   }
   if(toDelete.length){saveDischargeMap();saveWardMap();}
-  // Migrate patients whose ward is NULL in Supabase but known locally (e.g. old consult/pri patients)
-  const wardMigrations=pts.filter(p=>!p.ward && wardMap[p.id] && wardMap[p.id]!=='a');
-  if(wardMigrations.length){
-    wardMigrations.forEach(p=>sb.from('patients').update({ward:wardMap[p.id]}).eq('id',p.id).then(()=>{}));
-  }
+  // Push wardMap to Supabase when local differs (catches NULL and stale values after a move)
+  pts.forEach(p=>{
+    const local=wardMap[p.id];
+    if(local && local!=='a' && local!==(p.ward||'a')){
+      sb.from('patients').update({ward:local}).eq('id',p.id).then(()=>{});
+    }
+  });
   patients = pts.map(p=>({
-    id:p.id, name:p.name, open:p.open, ward:p.ward||wardMap[p.id]||'a',
+    id:p.id, name:p.name, open:p.open, ward:wardMap[p.id]||p.ward||'a',
     tasks: tks.filter(t=>t.patient_id===p.id).map(t=>({id:t.id,text:t.text,done:t.done}))
   }));
   let secUpdated=false;
@@ -1367,6 +1368,9 @@ async function loadAll(){
       if(meta.diag)Object.assign(diagMap,meta.diag);
       if(meta.wardloc)Object.assign(wardLocMap,meta.wardloc);
       if(meta.roundPlan)Object.assign(roundPlanMap,meta.roundPlan);
+      if(meta.roundList){priRoundList=meta.roundList;localStorage.setItem('wq_pri_round',JSON.stringify(priRoundList));}
+      if(meta.roundMet){roundMetSet=new Set(meta.roundMet);localStorage.setItem('wq_round_met',JSON.stringify([...roundMetSet]));}
+      if(meta.roundMetTs){Object.assign(roundMetTs,meta.roundMetTs);saveRoundMetTs();}
       saveDeptMap();saveDiagMap();saveWardLocMap();saveRoundPlanMap();
     }catch(e){}
   } else {
