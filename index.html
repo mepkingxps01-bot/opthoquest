@@ -578,10 +578,16 @@ function toggleRoundMet(pid,e){
   if(e)e.stopPropagation();
   if(roundMetSet.has(pid)){
     roundMetSet.delete(pid);delete roundMetTs[pid];clearTimeout(_roundTimers[pid]);
+    // Unmet: move back to top
+    priRoundList=priRoundList.filter(id=>id!==pid);
+    priRoundList.unshift(pid);
   } else {
     roundMetSet.add(pid);roundMetTs[pid]=Date.now();scheduleRoundRemoval(pid);
+    // Met: sink to bottom
+    priRoundList=priRoundList.filter(id=>id!==pid);
+    priRoundList.push(pid);
   }
-  saveRoundMet();saveRoundMetTs();syncRoundList();renderConsult();
+  savePRIRound();saveRoundMet();saveRoundMetTs();syncRoundList();renderConsult();
 }
 function openRoundPicker(){
   const overlay=document.getElementById('round-picker-overlay');
