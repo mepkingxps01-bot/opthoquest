@@ -111,7 +111,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .round-list-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:var(--teal);letter-spacing:.06em;text-transform:uppercase;}
 .round-list-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-top:0.5px solid var(--border);}
 .round-list-row:first-of-type{border-top:none;}
-.round-plan-input{width:100%;background:var(--bg3);border:0.5px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;padding:5px 8px;outline:none;margin-top:5px;resize:none;overflow:hidden;min-height:28px;line-height:1.4;font-family:'DM Sans',sans-serif;}
+.round-plan-input{flex:1;background:var(--bg3);border:0.5px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;padding:5px 8px;outline:none;resize:none;overflow:hidden;min-height:34px;line-height:1.4;font-family:'DM Sans',sans-serif;align-self:center;}
 .round-plan-input::placeholder{color:var(--text3);}
 .round-list-name{font-size:13px;font-weight:700;color:var(--text);}
 .round-list-meta{font-size:11px;color:var(--text3);margin-top:2px;}
@@ -1111,11 +1111,11 @@ function renderConsult(){
         const plan=getRoundPlan(p.id);
         return `<div class="round-list-row">
           <button class="met-btn${pMet?' met':''}" onclick="toggleRoundMet('${p.id}',event)">${pMet?'✓':''}</button>
-          <div style="flex:1;">
+          <div style="flex:0 0 auto;min-width:0;max-width:45%;">
             <div class="round-list-name">${esc(p.name)}${ds?` <span class="dept-badge" style="background:${ds.bg};color:${ds.color};border:1px solid ${ds.border};">${dept}</span>`:''}</div>
             <div class="round-list-meta">${diag?`Dx: ${esc(diag)}`:''}${diag&&loc?' · ':''}${loc?`📍 ${esc(loc)}`:''}</div>
-            <textarea class="round-plan-input" placeholder="Plan..." oninput="onRoundPlanInput('${p.id}',this.value);autoResize(this)" onclick="event.stopPropagation()">${esc(plan)}</textarea>
           </div>
+          <textarea class="round-plan-input" placeholder="Plan..." oninput="onRoundPlanInput('${p.id}',this.value);autoResize(this)" onclick="event.stopPropagation()">${esc(plan)}</textarea>
           <button class="del-pt-btn" onclick="removeFromRound('${p.id}')">✕</button>
         </div>`;
       }).join(''):`<div style="font-size:12px;color:var(--text3);padding:6px 0;">No patients in round yet. Tap 🩺 Round to add.</div>`}
