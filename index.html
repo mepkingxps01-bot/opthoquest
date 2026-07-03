@@ -122,6 +122,8 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .round-picker-cb{width:20px;height:20px;border-radius:6px;border:1.5px solid var(--border2);background:transparent;cursor:pointer;appearance:none;-webkit-appearance:none;flex-shrink:0;transition:all .15s;}
 .round-picker-cb:checked{background:var(--teal);border-color:var(--teal);}
 .round-add-btn{background:linear-gradient(135deg,var(--teal),var(--purple2));border:none;border-radius:var(--radius);color:#fff;font-family:'Syne',sans-serif;font-size:13px;font-weight:800;padding:11px;width:100%;cursor:pointer;margin-top:14px;}
+.dc-notify-section{background:var(--bg2);border:0.5px solid rgba(251,191,36,0.35);border-radius:var(--radius);padding:12px;margin-bottom:14px;}
+.dc-notify-title{font-family:'Syne',sans-serif;font-size:12px;font-weight:800;color:#fbbf24;letter-spacing:.06em;text-transform:uppercase;}
 .dept-badge{font-size:9px;font-weight:800;padding:2px 8px;border-radius:99px;font-family:'Syne',sans-serif;letter-spacing:.05em;flex-shrink:0;}
 .dept-pick-wrap{display:flex;flex-wrap:wrap;gap:5px;padding:6px 0 3px;}
 .dept-pick-btn{font-size:10px;font-family:'Syne',sans-serif;font-weight:700;padding:4px 10px;border-radius:99px;border:1.5px solid;cursor:pointer;transition:all .18s;background:transparent;letter-spacing:.03em;}
@@ -427,8 +429,10 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
       <input class="add-input" id="consult-name-input" placeholder="ชื่อผู้ป่วย Consult..." onkeydown="if(event.key==='Enter')addConsultPatient()" />
       <button class="add-btn" onclick="addConsultPatient()">+ Add</button>
       <button class="handover-misc-btn" style="padding:0 14px;font-size:12px;margin:0;width:auto;white-space:nowrap;" onclick="openRoundPicker()">🩺 Round</button>
+      <button class="handover-misc-btn" style="padding:0 14px;font-size:12px;margin:0;width:auto;white-space:nowrap;border-color:rgba(251,191,36,0.4);color:#fbbf24;" onclick="openDCPicker()">🔔 DC</button>
     </div>
     <div id="consult-round-list"></div>
+    <div id="dc-notify-list"></div>
     <div id="consult-list"></div>
   </div>
 </div>
@@ -438,6 +442,13 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
     <div class="round-picker-title">🩺 Select Consult Patients to Round</div>
     <div id="round-picker-list"></div>
     <button class="round-add-btn" onclick="confirmRoundPicker()">✓ Done</button>
+  </div>
+</div>
+<div class="round-picker-overlay" id="dc-picker-overlay" style="display:none" onclick="closeDCPicker(event)">
+  <div class="round-picker-sheet" onclick="event.stopPropagation()">
+    <div class="round-picker-title">🔔 Select Patients — Wait for notify DC</div>
+    <div id="dc-picker-list"></div>
+    <button class="round-add-btn" style="background:linear-gradient(135deg,#fbbf24,#f59e0b);" onclick="confirmDCPicker()">✓ Done</button>
   </div>
 </div>
 <div class="bottom-bar"><div class="home-indicator"></div></div>
@@ -605,6 +616,61 @@ function removeFromRound(pid){
   priRoundList=priRoundList.filter(id=>id!==pid);
   roundMetSet.delete(pid);delete roundMetTs[pid];clearTimeout(_roundTimers[pid]);
   savePRIRound();saveRoundMet();saveRoundMetTs();renderConsult();
+}
+let dcNotifyList=JSON.parse(localStorage.getItem('wq_dc_notify')||'[]');
+function saveDCNotify(){localStorage.setItem('wq_dc_notify',JSON.stringify(dcNotifyList));}
+let dcDoneSet=new Set(JSON.parse(localStorage.getItem('wq_dc_done')||'[]'));
+function saveDCDone(){localStorage.setItem('wq_dc_done',JSON.stringify([...dcDoneSet]));}
+let dcDoneTs=JSON.parse(localStorage.getItem('wq_dc_done_ts')||'{}');
+function saveDCDoneTs(){localStorage.setItem('wq_dc_done_ts',JSON.stringify(dcDoneTs));}
+const _dcTimers={};
+function scheduleDCRemoval(pid){
+  const ts=dcDoneTs[pid];if(!ts)return;
+  const rem=2*60*60*1000-(Date.now()-ts);
+  clearTimeout(_dcTimers[pid]);
+  if(rem<=0){removeFromDCNotify(pid);return;}
+  _dcTimers[pid]=setTimeout(()=>removeFromDCNotify(pid),rem);
+}
+function toggleDCDone(pid,e){
+  if(e)e.stopPropagation();
+  if(dcDoneSet.has(pid)){
+    dcDoneSet.delete(pid);delete dcDoneTs[pid];clearTimeout(_dcTimers[pid]);
+  } else {
+    dcDoneSet.add(pid);dcDoneTs[pid]=Date.now();scheduleDCRemoval(pid);
+  }
+  saveDCDone();saveDCDoneTs();renderConsult();
+}
+function removeFromDCNotify(pid){
+  dcNotifyList=dcNotifyList.filter(id=>id!==pid);
+  dcDoneSet.delete(pid);delete dcDoneTs[pid];clearTimeout(_dcTimers[pid]);
+  saveDCNotify();saveDCDone();saveDCDoneTs();renderConsult();
+}
+function openDCPicker(){
+  const overlay=document.getElementById('dc-picker-overlay');
+  const listEl=document.getElementById('dc-picker-list');
+  const pts=patients.filter(p=>p.ward==='ward'||p.ward==='consult');
+  if(!pts.length){listEl.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">No patients yet.</div>';overlay.style.display='flex';return;}
+  listEl.innerHTML=pts.map(p=>{
+    const checked=dcNotifyList.includes(p.id)?'checked':'';
+    const dept=getConsultDept(p.id);const ds=dept?DEPT_STYLE[dept]:null;
+    const loc=getWardLoc(p.id);
+    return `<div class="round-picker-item">
+      <input type="checkbox" class="round-picker-cb" id="dcpcb-${p.id}" ${checked} style="accent-color:#fbbf24;" />
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">${esc(p.name)}${ds?` <span style="font-size:9px;font-weight:800;padding:1px 6px;border-radius:99px;background:${ds.bg};color:${ds.color};border:1px solid ${ds.border};">${dept}</span>`:''}</div>
+        ${loc?`<div style="font-size:11px;color:var(--teal);">📍 ${esc(loc)}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  overlay.style.display='flex';
+}
+function closeDCPicker(e){document.getElementById('dc-picker-overlay').style.display='none';}
+function confirmDCPicker(){
+  const pts=patients.filter(p=>p.ward==='ward'||p.ward==='consult');
+  dcNotifyList=pts.filter(p=>document.getElementById('dcpcb-'+p.id)?.checked).map(p=>p.id);
+  saveDCNotify();
+  closeDCPicker();
+  renderConsult();
 }
 function setConsultDept(pid,dept){
   deptMap[pid]=getConsultDept(pid)===dept?null:dept;
@@ -1121,6 +1187,27 @@ function renderConsult(){
       }).join(''):`<div style="font-size:12px;color:var(--text3);padding:6px 0;">No patients in round yet. Tap 🩺 Round to add.</div>`}
     </div>`;
   }
+  // Render DC notify list
+  const dcEl=document.getElementById('dc-notify-list');
+  if(dcEl){
+    const dcPts=dcNotifyList.map(id=>patients.find(p=>p.id===id)).filter(Boolean);
+    dcEl.innerHTML=`<div class="dc-notify-section">
+      <div class="round-list-hdr"><span class="dc-notify-title">🔔 Wait for notify DC</span>${dcPts.length?`<span class="ward-count">${dcPts.length} pt${dcPts.length!==1?'s':''}</span>`:''}</div>
+      ${dcPts.length?dcPts.map(p=>{
+        const pDone=dcDoneSet.has(p.id);
+        const dept=getConsultDept(p.id);const ds=dept?DEPT_STYLE[dept]:null;
+        const loc=getWardLoc(p.id);
+        return `<div class="round-list-row">
+          <button class="met-btn${pDone?' met':''}" onclick="toggleDCDone('${p.id}',event)" style="${pDone?'border-color:#fbbf24;background:rgba(251,191,36,0.15);color:#fbbf24;':''}">${pDone?'✓':''}</button>
+          <div style="flex:1;min-width:0;">
+            <div class="round-list-name">${esc(p.name)}${ds?` <span class="dept-badge" style="background:${ds.bg};color:${ds.color};border:1px solid ${ds.border};">${dept}</span>`:''}</div>
+            ${loc?`<div class="round-list-meta">📍 ${esc(loc)}</div>`:''}
+          </div>
+          <button class="del-pt-btn" onclick="removeFromDCNotify('${p.id}')">✕</button>
+        </div>`;
+      }).join(''):`<div style="font-size:12px;color:var(--text3);padding:6px 0;">No patients waiting. Tap 🔔 DC to add.</div>`}
+    </div>`;
+  }
   const pts=patients.filter(p=>p.ward==='consult');
   if(!pts.length){el.innerHTML='<div class="empty" style="padding:1rem 0"><div class="empty-icon">🩺</div>No consult patients yet.</div>';return;}
   let html='';
@@ -1583,6 +1670,7 @@ renderAdmitForm();
 loadAll().then(()=>{
   setupRealtime();
   Object.keys(roundMetTs).forEach(pid=>scheduleRoundRemoval(pid));
+  Object.keys(dcDoneTs).forEach(pid=>scheduleDCRemoval(pid));
   setInterval(()=>{
     const a=document.activeElement;
     if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'))return;
