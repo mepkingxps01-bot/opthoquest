@@ -187,6 +187,8 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .badge-prog{background:var(--purple-dim);color:var(--purple);}
 .del-pt-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:3px 5px;border-radius:5px;transition:color .15s;}
 .del-pt-btn:hover{color:var(--red);background:var(--red-dim);}
+.round-move-btn{background:none;border:none;cursor:pointer;color:var(--text3);font-size:13px;padding:2px 4px;border-radius:4px;line-height:1;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.round-move-btn:active{background:var(--bg3);color:var(--text);}
 .pt-prog{height:2px;background:var(--bg2);border-radius:99px;margin:0 0 8px;overflow:hidden;}
 .pt-prog-fill{height:100%;background:linear-gradient(90deg,var(--teal),#4ec9b0);transition:width .4s;}
 
@@ -608,6 +610,12 @@ function confirmRoundPicker(){
   savePRIRound();syncRoundList();
   closeRoundPicker();
   renderConsult();
+}
+function moveInRound(pid,dir){
+  const i=priRoundList.indexOf(pid);if(i<0)return;
+  const j=i+dir;if(j<0||j>=priRoundList.length)return;
+  [priRoundList[i],priRoundList[j]]=[priRoundList[j],priRoundList[i]];
+  savePRIRound();syncRoundList();renderConsult();
 }
 function removeFromRound(pid){
   priRoundList=priRoundList.filter(id=>id!==pid);
@@ -1119,9 +1127,14 @@ function renderConsult(){
         const dept=getConsultDept(p.id);const ds=dept?DEPT_STYLE[dept]:null;
         const pMet=roundMetSet.has(p.id);
         const plan=getRoundPlan(p.id);
+        const idx=priRoundList.indexOf(p.id);const total=priRoundList.length;
         return `<div class="round-list-row">
+          <div style="display:flex;flex-direction:column;gap:1px;flex-shrink:0;">
+            <button class="round-move-btn" onclick="moveInRound('${p.id}',-1)" ${idx===0?'style="opacity:.25;pointer-events:none;"':''}>▲</button>
+            <button class="round-move-btn" onclick="moveInRound('${p.id}',1)" ${idx===total-1?'style="opacity:.25;pointer-events:none;"':''}>▼</button>
+          </div>
           <button class="met-btn${pMet?' met':''}" onclick="toggleRoundMet('${p.id}',event)">${pMet?'✓':''}</button>
-          <div style="flex:0 0 auto;min-width:0;max-width:45%;">
+          <div style="flex:0 0 auto;min-width:0;max-width:40%;">
             <div class="round-list-name">${esc(p.name)}${ds?` <span class="dept-badge" style="background:${ds.bg};color:${ds.color};border:1px solid ${ds.border};">${dept}</span>`:''}</div>
             <div class="round-list-meta">${diag?`Dx: ${esc(diag)}`:''}${diag&&loc?' · ':''}${loc?`📍 ${esc(loc)}`:''}</div>
           </div>
