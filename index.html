@@ -1108,9 +1108,9 @@ function buildConsultCard(p,i){
 function renderConsult(){
   const el=document.getElementById('consult-list');
   if(!el)return;
-  // Render round list
+  // Render round list — skip re-render if user is typing in a plan textarea
   const roundEl=document.getElementById('consult-round-list');
-  if(roundEl){
+  if(roundEl&&!(document.activeElement?.id?.startsWith('rplan-'))){
     const roundPts=priRoundList.map(id=>patients.find(p=>p.id===id)).filter(Boolean);
     roundEl.innerHTML=`<div class="round-list-section">
       <div class="round-list-hdr"><span class="round-list-title">📋 Round List</span>${roundPts.length?`<span class="ward-count">${roundPts.length} pt${roundPts.length!==1?'s':''}</span>`:''}</div>
