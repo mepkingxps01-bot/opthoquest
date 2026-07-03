@@ -543,7 +543,7 @@ function saveRoundPlanMap(){localStorage.setItem('wq_round_plan',JSON.stringify(
 function getRoundPlan(pid){return roundPlanMap[pid]||'';}
 const _planTimers={};
 function onRoundPlanInput(pid,val){roundPlanMap[pid]=val;saveRoundPlanMap();clearTimeout(_planTimers[pid]);_planTimers[pid]=setTimeout(syncConsultMeta,800);}
-function syncConsultMeta(){sb.from('settings').upsert({key:'consult_meta',value:JSON.stringify({dept:deptMap,diag:diagMap,wardloc:wardLocMap,roundPlan:roundPlanMap})});}
+function syncConsultMeta(){sb.from('settings').upsert({key:'consult_meta',value:JSON.stringify({dept:deptMap,diag:diagMap,wardloc:wardLocMap,roundPlan:roundPlanMap})}).then(({error})=>{if(error)console.warn('syncConsultMeta:',error.message);});}
 const _diagTimers={},_locTimers={};
 function onDiagInput(pid,val){diagMap[pid]=val;saveDiagMap();clearTimeout(_diagTimers[pid]);_diagTimers[pid]=setTimeout(syncConsultMeta,800);}
 function onWardLocInput(pid,val){wardLocMap[pid]=val;saveWardLocMap();clearTimeout(_locTimers[pid]);_locTimers[pid]=setTimeout(syncConsultMeta,800);}
@@ -1340,6 +1340,11 @@ async function loadAll(){
     pts=pts.filter(p=>p.id!==pid);
   }
   if(toDelete.length){saveDischargeMap();saveWardMap();}
+  // Migrate patients whose ward is NULL in Supabase but known locally (e.g. old consult/pri patients)
+  const wardMigrations=pts.filter(p=>!p.ward && wardMap[p.id] && wardMap[p.id]!=='a');
+  if(wardMigrations.length){
+    wardMigrations.forEach(p=>sb.from('patients').update({ward:wardMap[p.id]}).eq('id',p.id).then(()=>{}));
+  }
   patients = pts.map(p=>({
     id:p.id, name:p.name, open:p.open, ward:p.ward||wardMap[p.id]||'a',
     tasks: tks.filter(t=>t.patient_id===p.id).map(t=>({id:t.id,text:t.text,done:t.done}))
