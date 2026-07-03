@@ -893,6 +893,10 @@ function buildPRICard(p,i){
   </div>`;
 }
 function renderPRIWard(){
+  const activeId=document.activeElement?.id||'';
+  if(activeId.startsWith('ti-'))return;
+  const openPicker=document.querySelector('.move-picker[style*="display: flex"],.staff-pick-wrap[style*="display: flex"]');
+  if(openPicker)return;
   const list=document.getElementById('ward-list');
   const wardPts=patients.filter(p=>p.ward==='pri');
   const tot=wardPts.length;
@@ -920,6 +924,11 @@ function renderPRIWard(){
 
 function renderWard(){
   if(activeWard==='pri'){renderPRIWard();return;}
+  // Skip re-render if user is typing in a task input or has a picker open
+  const activeId=document.activeElement?.id||'';
+  if(activeId.startsWith('ti-'))return;
+  const openPicker=document.querySelector('.move-picker[style*="display: flex"],.staff-pick-wrap[style*="display: flex"]');
+  if(openPicker)return;
   const list=document.getElementById('ward-list');
   const wardPts=patients.filter(p=>(p.ward||'a')===activeWard);
   const wardLabel=activeWard==='dc'?'🏥 Wait for DC':'Ward '+activeWard.toUpperCase();
