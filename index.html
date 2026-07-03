@@ -115,6 +115,9 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
 .round-plan-input::placeholder{color:var(--text3);}
 .round-list-name{font-size:13px;font-weight:700;color:var(--text);}
 .round-list-meta{font-size:11px;color:var(--text3);margin-top:2px;}
+.hn-input{width:100%;background:var(--bg3);border:0.5px solid var(--border);border-radius:5px;color:var(--text);font-size:11px;padding:3px 7px;outline:none;margin-top:3px;font-family:'DM Sans',sans-serif;}
+.hn-input::placeholder{color:var(--text3);}
+.hn-input:focus{border-color:var(--purple);}
 .round-picker-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;display:flex;align-items:flex-end;}
 .round-picker-sheet{width:100%;background:var(--bg2);border-radius:18px 18px 0 0;padding:20px 16px 32px;max-height:70vh;overflow-y:auto;}
 .round-picker-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:800;color:var(--text);margin-bottom:14px;}
@@ -542,9 +545,13 @@ function getWardLoc(pid){return wardLocMap[pid]||'';}
 let roundPlanMap=JSON.parse(localStorage.getItem('wq_round_plan')||'{}');
 function saveRoundPlanMap(){localStorage.setItem('wq_round_plan',JSON.stringify(roundPlanMap));}
 function getRoundPlan(pid){return roundPlanMap[pid]||'';}
-const _planTimers={};
+let hnMap=JSON.parse(localStorage.getItem('wq_hn_map')||'{}');
+function saveHnMap(){localStorage.setItem('wq_hn_map',JSON.stringify(hnMap));}
+function getHn(pid){return hnMap[pid]||'';}
+const _planTimers={},_hnTimers={};
 function onRoundPlanInput(pid,val){roundPlanMap[pid]=val;saveRoundPlanMap();clearTimeout(_planTimers[pid]);_planTimers[pid]=setTimeout(syncConsultMeta,800);}
-function syncConsultMeta(){sb.from('settings').upsert({key:'consult_meta',value:JSON.stringify({dept:deptMap,diag:diagMap,wardloc:wardLocMap,roundPlan:roundPlanMap})}).then(({error})=>{if(error)console.warn('syncConsultMeta:',error.message);});}
+function onHnInput(pid,val){hnMap[pid]=val;saveHnMap();clearTimeout(_hnTimers[pid]);_hnTimers[pid]=setTimeout(syncConsultMeta,800);}
+function syncConsultMeta(){sb.from('settings').upsert({key:'consult_meta',value:JSON.stringify({dept:deptMap,diag:diagMap,wardloc:wardLocMap,roundPlan:roundPlanMap,hn:hnMap})}).then(({error})=>{if(error)console.warn('syncConsultMeta:',error.message);});}
 function syncRoundList(){sb.from('settings').upsert({key:'round_list_data',value:JSON.stringify({roundList:priRoundList,roundMet:[...roundMetSet],roundMetTs})}).then(({error})=>{if(error)console.warn('syncRoundList:',error.message);});}
 const _diagTimers={},_locTimers={};
 function onDiagInput(pid,val){diagMap[pid]=val;saveDiagMap();clearTimeout(_diagTimers[pid]);_diagTimers[pid]=setTimeout(syncConsultMeta,800);}
@@ -1151,6 +1158,7 @@ function renderConsult(){
           <button class="met-btn${pMet?' met':''}" onclick="toggleRoundMet('${p.id}',event)">${pMet?'✓':''}</button>
           <div style="flex:0 0 auto;min-width:0;max-width:40%;">
             <div class="round-list-name">${esc(p.name)}${ds?` <span class="dept-badge" style="background:${ds.bg};color:${ds.color};border:1px solid ${ds.border};">${dept}</span>`:''}</div>
+            <input class="hn-input" placeholder="HN" value="${esc(getHn(p.id))}" oninput="onHnInput('${p.id}',this.value)" onclick="event.stopPropagation()" />
             <div class="round-list-meta">${diag?`Dx: ${esc(diag)}`:''}${diag&&loc?' · ':''}${loc?`📍 ${esc(loc)}`:''}</div>
           </div>
           <textarea id="rplan-${p.id}" class="round-plan-input" placeholder="Plan..." oninput="onRoundPlanInput('${p.id}',this.value);autoResize(this)" onclick="event.stopPropagation()">${esc(plan)}</textarea>
@@ -1407,7 +1415,8 @@ async function loadAll(){
         });
         saveRoundPlanMap();
       }
-      saveDeptMap();saveDiagMap();saveWardLocMap();
+      if(meta.hn)Object.assign(hnMap,meta.hn);
+      saveDeptMap();saveDiagMap();saveWardLocMap();saveHnMap();
     }catch(e){}
   } else {
     const hasLocal=Object.values(deptMap).some(Boolean)||Object.values(diagMap).some(Boolean)||Object.values(wardLocMap).some(Boolean);
