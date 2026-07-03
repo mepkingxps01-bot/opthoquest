@@ -518,7 +518,7 @@ let staffMap=JSON.parse(localStorage.getItem('wq_staff_map')||'{}');
 function saveStaffMap(){localStorage.setItem('wq_staff_map',JSON.stringify(staffMap));}
 function getStaff(pid){return staffMap[pid]||null;}
 
-const DEPT=['Med','OB','Ped','Surg','Ortho','ENT','Other'];
+const DEPT=['Med','OB','Ped','Surg','Ortho','ENT','DC','Other'];
 const DEPT_STYLE={
   'Med':   {bg:'rgba(37,99,235,0.12)', border:'rgba(37,99,235,0.35)', color:'#3b82f6'},
   'OB':    {bg:'rgba(236,72,153,0.12)',border:'rgba(236,72,153,0.35)',color:'#ec4899'},
@@ -526,6 +526,7 @@ const DEPT_STYLE={
   'Surg':  {bg:'rgba(220,38,38,0.12)', border:'rgba(220,38,38,0.35)', color:'#ef4444'},
   'Ortho': {bg:'rgba(16,185,129,0.12)',border:'rgba(16,185,129,0.35)',color:'#10b981'},
   'ENT':   {bg:'rgba(139,92,246,0.12)',border:'rgba(139,92,246,0.35)',color:'#8b5cf6'},
+  'DC':    {bg:'rgba(251,191,36,0.12)', border:'rgba(251,191,36,0.35)', color:'#fbbf24'},
   'Other': {bg:'rgba(107,114,128,0.12)',border:'rgba(107,114,128,0.35)',color:'#9ca3af'},
 };
 let deptMap=JSON.parse(localStorage.getItem('wq_dept_map')||'{}');
