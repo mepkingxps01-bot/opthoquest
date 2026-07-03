@@ -1621,6 +1621,16 @@ loadAll().then(()=>{
   },30000);
 });
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')loadAll();});
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/opthoquest/sw.js').then(reg=>{
+    reg.addEventListener('updatefound',()=>{
+      const nw=reg.installing;
+      nw.addEventListener('statechange',()=>{
+        if(nw.state==='activated')window.location.reload();
+      });
+    });
+  });
+}
 </script>
 </body>
 </html>
