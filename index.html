@@ -542,7 +542,8 @@ function saveRoundPlanMap(){localStorage.setItem('wq_round_plan',JSON.stringify(
 function getRoundPlan(pid){return roundPlanMap[pid]||'';}
 const _planTimers={};
 function onRoundPlanInput(pid,val){roundPlanMap[pid]=val;saveRoundPlanMap();clearTimeout(_planTimers[pid]);_planTimers[pid]=setTimeout(syncConsultMeta,800);}
-function syncConsultMeta(){sb.from('settings').upsert({key:'consult_meta',value:JSON.stringify({dept:deptMap,diag:diagMap,wardloc:wardLocMap,roundPlan:roundPlanMap,roundList:priRoundList,roundMet:[...roundMetSet],roundMetTs})}).then(({error})=>{if(error)console.warn('syncConsultMeta:',error.message);});}
+function syncConsultMeta(){sb.from('settings').upsert({key:'consult_meta',value:JSON.stringify({dept:deptMap,diag:diagMap,wardloc:wardLocMap,roundPlan:roundPlanMap})}).then(({error})=>{if(error)console.warn('syncConsultMeta:',error.message);});}
+function syncRoundList(){sb.from('settings').upsert({key:'round_list_data',value:JSON.stringify({roundList:priRoundList,roundMet:[...roundMetSet],roundMetTs})}).then(({error})=>{if(error)console.warn('syncRoundList:',error.message);});}
 const _diagTimers={},_locTimers={};
 function onDiagInput(pid,val){diagMap[pid]=val;saveDiagMap();clearTimeout(_diagTimers[pid]);_diagTimers[pid]=setTimeout(syncConsultMeta,800);}
 function onWardLocInput(pid,val){wardLocMap[pid]=val;saveWardLocMap();clearTimeout(_locTimers[pid]);_locTimers[pid]=setTimeout(syncConsultMeta,800);}
@@ -578,7 +579,7 @@ function toggleRoundMet(pid,e){
   } else {
     roundMetSet.add(pid);roundMetTs[pid]=Date.now();scheduleRoundRemoval(pid);
   }
-  saveRoundMet();saveRoundMetTs();syncConsultMeta();renderConsult();
+  saveRoundMet();saveRoundMetTs();syncRoundList();renderConsult();
 }
 function openRoundPicker(){
   const overlay=document.getElementById('round-picker-overlay');
@@ -604,14 +605,14 @@ function closeRoundPicker(e){document.getElementById('round-picker-overlay').sty
 function confirmRoundPicker(){
   const pts=patients.filter(p=>p.ward==='consult');
   priRoundList=pts.filter(p=>document.getElementById('rpcb-'+p.id)?.checked).map(p=>p.id);
-  savePRIRound();syncConsultMeta();
+  savePRIRound();syncRoundList();
   closeRoundPicker();
   renderConsult();
 }
 function removeFromRound(pid){
   priRoundList=priRoundList.filter(id=>id!==pid);
   roundMetSet.delete(pid);delete roundMetTs[pid];clearTimeout(_roundTimers[pid]);
-  savePRIRound();saveRoundMet();saveRoundMetTs();syncConsultMeta();renderConsult();
+  savePRIRound();saveRoundMet();saveRoundMetTs();syncRoundList();renderConsult();
 }
 function setConsultDept(pid,dept){
   deptMap[pid]=getConsultDept(pid)===dept?null:dept;
@@ -1368,23 +1369,31 @@ async function loadAll(){
       if(meta.diag)Object.assign(diagMap,meta.diag);
       if(meta.wardloc)Object.assign(wardLocMap,meta.wardloc);
       if(meta.roundPlan){
-        Object.assign(roundPlanMap,meta.roundPlan);
-        saveRoundPlanMap();
-        // Patch plan textareas in place so focused ones aren't disrupted
+        // Merge: only apply remote value if it's non-empty (prevents stale empty overwrite)
         Object.entries(meta.roundPlan).forEach(([pid,val])=>{
-          const ta=document.getElementById('rplan-'+pid);
-          if(ta&&document.activeElement!==ta)ta.value=val||'';
+          if(val){
+            roundPlanMap[pid]=val;
+            const ta=document.getElementById('rplan-'+pid);
+            if(ta&&document.activeElement!==ta)ta.value=val;
+          }
         });
+        saveRoundPlanMap();
       }
-      if(meta.roundList){priRoundList=meta.roundList;localStorage.setItem('wq_pri_round',JSON.stringify(priRoundList));}
-      if(meta.roundMet){roundMetSet=new Set(meta.roundMet);localStorage.setItem('wq_round_met',JSON.stringify([...roundMetSet]));}
-      if(meta.roundMetTs){Object.assign(roundMetTs,meta.roundMetTs);saveRoundMetTs();}
       saveDeptMap();saveDiagMap();saveWardLocMap();
     }catch(e){}
   } else {
-    // No entry yet — push local data to bootstrap sync on other devices
     const hasLocal=Object.values(deptMap).some(Boolean)||Object.values(diagMap).some(Boolean)||Object.values(wardLocMap).some(Boolean);
     if(hasLocal)syncConsultMeta();
+  }
+  // Sync round list from dedicated key (kept separate to prevent cross-device clobber)
+  const roundListStr=allSettings['round_list_data'];
+  if(roundListStr){
+    try{
+      const rl=JSON.parse(roundListStr);
+      if(rl.roundList&&rl.roundList.length>0){priRoundList=rl.roundList;localStorage.setItem('wq_pri_round',JSON.stringify(priRoundList));}
+      if(rl.roundMet){roundMetSet=new Set(rl.roundMet);localStorage.setItem('wq_round_met',JSON.stringify([...roundMetSet]));}
+      if(rl.roundMetTs){Object.assign(roundMetTs,rl.roundMetTs);saveRoundMetTs();}
+    }catch(e){}
   }
   setSyncDot('online');
   renderXP();renderSummary();renderWard();renderConsult();
