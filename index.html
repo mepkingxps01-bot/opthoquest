@@ -624,29 +624,15 @@ let dcNotifyList=JSON.parse(localStorage.getItem('wq_dc_notify')||'[]');
 function saveDCNotify(){localStorage.setItem('wq_dc_notify',JSON.stringify(dcNotifyList));}
 let dcDoneSet=new Set(JSON.parse(localStorage.getItem('wq_dc_done')||'[]'));
 function saveDCDone(){localStorage.setItem('wq_dc_done',JSON.stringify([...dcDoneSet]));}
-let dcDoneTs=JSON.parse(localStorage.getItem('wq_dc_done_ts')||'{}');
-function saveDCDoneTs(){localStorage.setItem('wq_dc_done_ts',JSON.stringify(dcDoneTs));}
-const _dcTimers={};
-function scheduleDCRemoval(pid){
-  const ts=dcDoneTs[pid];if(!ts)return;
-  const rem=2*60*60*1000-(Date.now()-ts);
-  clearTimeout(_dcTimers[pid]);
-  if(rem<=0){removeFromDCNotify(pid);return;}
-  _dcTimers[pid]=setTimeout(()=>removeFromDCNotify(pid),rem);
-}
 function toggleDCDone(pid,e){
   if(e)e.stopPropagation();
-  if(dcDoneSet.has(pid)){
-    dcDoneSet.delete(pid);delete dcDoneTs[pid];clearTimeout(_dcTimers[pid]);
-  } else {
-    dcDoneSet.add(pid);dcDoneTs[pid]=Date.now();scheduleDCRemoval(pid);
-  }
-  saveDCDone();saveDCDoneTs();renderConsult();
+  if(dcDoneSet.has(pid))dcDoneSet.delete(pid);else dcDoneSet.add(pid);
+  saveDCDone();renderConsult();
 }
 function removeFromDCNotify(pid){
   dcNotifyList=dcNotifyList.filter(id=>id!==pid);
-  dcDoneSet.delete(pid);delete dcDoneTs[pid];clearTimeout(_dcTimers[pid]);
-  saveDCNotify();saveDCDone();saveDCDoneTs();renderConsult();
+  dcDoneSet.delete(pid);
+  saveDCNotify();saveDCDone();renderConsult();
 }
 function openDCPicker(){
   const overlay=document.getElementById('dc-picker-overlay');
@@ -1679,7 +1665,6 @@ renderAdmitForm();
 loadAll().then(()=>{
   setupRealtime();
   Object.keys(roundMetTs).forEach(pid=>scheduleRoundRemoval(pid));
-  Object.keys(dcDoneTs).forEach(pid=>scheduleDCRemoval(pid));
   setInterval(()=>{
     const a=document.activeElement;
     if(a&&(a.tagName==='INPUT'||a.tagName==='TEXTAREA'))return;
