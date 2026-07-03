@@ -1620,7 +1620,24 @@ loadAll().then(()=>{
     loadAll();
   },30000);
 });
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')loadAll();});
+// Strip cache-bust param added by checkHtmlVersion
+if(new URLSearchParams(location.search).has('_')){history.replaceState(null,'',location.pathname);}
+let _htmlEtag=null;
+async function checkHtmlVersion(){
+  try{
+    const r=await fetch(location.pathname,{method:'HEAD',cache:'no-store'});
+    const tag=r.headers.get('etag')||r.headers.get('last-modified');
+    if(_htmlEtag&&tag&&_htmlEtag!==tag){
+      location.replace(location.pathname+'?_='+Date.now());
+      return;
+    }
+    if(tag)_htmlEtag=tag;
+  }catch(e){}
+}
+checkHtmlVersion();
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'){checkHtmlVersion();loadAll();}
+});
 if('serviceWorker' in navigator){
   navigator.serviceWorker.register('/opthoquest/sw.js').then(reg=>{
     reg.addEventListener('updatefound',()=>{
