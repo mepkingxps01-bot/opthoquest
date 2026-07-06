@@ -508,7 +508,7 @@ function toggleSectionCollapse(sec){
   if(body)body.classList.toggle('collapsed',sectionCollapsed[sec]);
   if(chevron)chevron.style.transform=sectionCollapsed[sec]?'rotate(-90deg)':'rotate(0deg)';
 }
-const STAFF=['Direk','Voraporn','Thidarat','Pitch','Thunyaluck','Damrong','Janejit','Ornisa','Chulaluck','Paradee','Napaporn'];
+const STAFF=['Direk','Voraporn','Thidarat','Pitch','Thunyaluck','Damrong','Janejit','Ornisa','Chulaluck','Paradee','Napaporn','Pantaree'];
 const STAFF_STYLE={
   'Direk':      {bg:'rgba(144,128,255,0.15)',border:'rgba(144,128,255,0.35)',color:'#9080ff'},
   'Voraporn':   {bg:'rgba(78,205,196,0.15)', border:'rgba(78,205,196,0.35)', color:'#4ecdc4'},
@@ -521,6 +521,7 @@ const STAFF_STYLE={
   'Chulaluck':  {bg:'rgba(52,152,219,0.15)', border:'rgba(52,152,219,0.35)', color:'#3498db'},
   'Paradee':    {bg:'rgba(16,185,129,0.15)', border:'rgba(16,185,129,0.35)', color:'#10b981'},
   'Napaporn':   {bg:'rgba(168,85,247,0.15)', border:'rgba(168,85,247,0.35)', color:'#a855f7'},
+  'Pantaree':   {bg:'rgba(245,158,11,0.15)', border:'rgba(245,158,11,0.35)', color:'#f59e0b'},
 };
 let staffMap=JSON.parse(localStorage.getItem('wq_staff_map')||'{}');
 function saveStaffMap(){localStorage.setItem('wq_staff_map',JSON.stringify(staffMap));}
