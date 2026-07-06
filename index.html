@@ -649,6 +649,9 @@ async function setStaff(pid,name){
   const newStaff=getStaff(pid)===name?null:name;
   staffMap[pid]=newStaff;
   saveStaffMap();
+  // Close picker before rendering so the guard doesn't block the update
+  const picker=document.getElementById('staff-picker-'+pid);
+  if(picker)picker.style.display='none';
   renderWard();
   const {error}=await sb.from('patients').update({staff:newStaff}).eq('id',pid);
   if(error){alert('Run this SQL in Supabase to enable realtime staff sync:\nALTER TABLE patients ADD COLUMN IF NOT EXISTS staff text DEFAULT NULL;');}
@@ -1045,6 +1048,8 @@ async function movePatient(pid,ward){
   const p=patients.find(x=>x.id===pid);if(!p)return;
   p.ward=ward;wardMap[pid]=ward;saveWardMap();
   sb.from('patients').update({ward}).eq('id',pid).then(()=>{});
+  const mp=document.getElementById('move-picker-'+pid);
+  if(mp)mp.style.display='none';
   renderWard();
   const vLog=document.getElementById('view-log');
   if(vLog&&vLog.style.display!=='none')renderConsult();
