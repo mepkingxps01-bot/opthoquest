@@ -1334,7 +1334,11 @@ async function saveHandoverMiscNote(text){
 
 // ── Supabase helpers ──────────────────────────────────────────
 
-async function loadAll(){
+let _wardDataHash='';
+function getWardDataHash(){
+  return JSON.stringify(patients.map(p=>({id:p.id,name:p.name,ward:p.ward,open:p.open,staff:staffMap[p.id]||null,tasks:p.tasks})))+JSON.stringify(dischargeMap);
+}
+async function loadAll(fromPoll=false){
   setSyncDot('syncing');
   const [pRes, tRes, xpRes, logRes] = await Promise.all([
     sb.from('patients').select('*').order('created_at'),
@@ -1431,7 +1435,9 @@ async function loadAll(){
     }catch(e){}
   }
   setSyncDot('online');
-  renderXP();renderSummary();renderWard();renderConsult();
+  renderXP();renderSummary();renderConsult();
+  const newHash=getWardDataHash();
+  if(!fromPoll||newHash!==_wardDataHash){_wardDataHash=newHash;renderWard();}
   document.getElementById('loading-screen').classList.add('hidden');
 }
 
@@ -1676,7 +1682,7 @@ function backgroundLoadAll(){
   const aid=document.activeElement?.id||'';
   if(aid.startsWith('ti-')||aid.startsWith('rplan-')||aid.startsWith('pdiag-'))return;
   if(document.querySelector('.move-picker[style*="display: flex"],.staff-pick-wrap[style*="display: flex"]'))return;
-  loadAll();
+  loadAll(true);
 }
 loadAll().then(()=>{
   setupRealtime();
