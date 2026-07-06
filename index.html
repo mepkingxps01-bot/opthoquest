@@ -649,9 +649,6 @@ async function setStaff(pid,name){
   const newStaff=getStaff(pid)===name?null:name;
   staffMap[pid]=newStaff;
   saveStaffMap();
-  // Close picker before rendering so the guard doesn't block the update
-  const picker=document.getElementById('staff-picker-'+pid);
-  if(picker)picker.style.display='none';
   renderWard();
   const {error}=await sb.from('patients').update({staff:newStaff}).eq('id',pid);
   if(error){alert('Run this SQL in Supabase to enable realtime staff sync:\nALTER TABLE patients ADD COLUMN IF NOT EXISTS staff text DEFAULT NULL;');}
@@ -916,10 +913,6 @@ function buildPRICard(p,i){
   </div>`;
 }
 function renderPRIWard(){
-  const activeId=document.activeElement?.id||'';
-  if(activeId.startsWith('ti-')||activeId.startsWith('pdiag-'))return;
-  const openPicker=document.querySelector('.move-picker[style*="display: flex"],.staff-pick-wrap[style*="display: flex"]');
-  if(openPicker)return;
   const list=document.getElementById('ward-list');
   const wardPts=patients.filter(p=>p.ward==='pri');
   const tot=wardPts.length;
@@ -947,11 +940,6 @@ function renderPRIWard(){
 
 function renderWard(){
   if(activeWard==='pri'){renderPRIWard();return;}
-  // Skip re-render if user is typing in a task input or has a picker open
-  const activeId=document.activeElement?.id||'';
-  if(activeId.startsWith('ti-'))return;
-  const openPicker=document.querySelector('.move-picker[style*="display: flex"],.staff-pick-wrap[style*="display: flex"]');
-  if(openPicker)return;
   const list=document.getElementById('ward-list');
   const wardPts=patients.filter(p=>(p.ward||'a')===activeWard);
   const wardLabel=activeWard==='dc'?'🏥 Wait for DC':'Ward '+activeWard.toUpperCase();
@@ -1048,8 +1036,6 @@ async function movePatient(pid,ward){
   const p=patients.find(x=>x.id===pid);if(!p)return;
   p.ward=ward;wardMap[pid]=ward;saveWardMap();
   sb.from('patients').update({ward}).eq('id',pid).then(()=>{});
-  const mp=document.getElementById('move-picker-'+pid);
-  if(mp)mp.style.display='none';
   renderWard();
   const vLog=document.getElementById('view-log');
   if(vLog&&vLog.style.display!=='none')renderConsult();
@@ -1649,11 +1635,11 @@ async function clearDoneTasks(pid){
 // ── Realtime subscriptions ────────────────────────────────────
 function setupRealtime(){
   sb.channel('ward-sync')
-    .on('postgres_changes',{event:'*',schema:'public',table:'patients'},()=>loadAll())
-    .on('postgres_changes',{event:'*',schema:'public',table:'tasks'},()=>loadAll())
-    .on('postgres_changes',{event:'*',schema:'public',table:'xp_data'},()=>loadAll())
-    .on('postgres_changes',{event:'*',schema:'public',table:'xp_log'},()=>loadAll())
-    .on('postgres_changes',{event:'*',schema:'public',table:'settings'},()=>loadAll())
+    .on('postgres_changes',{event:'*',schema:'public',table:'patients'},backgroundLoadAll)
+    .on('postgres_changes',{event:'*',schema:'public',table:'tasks'},backgroundLoadAll)
+    .on('postgres_changes',{event:'*',schema:'public',table:'xp_data'},backgroundLoadAll)
+    .on('postgres_changes',{event:'*',schema:'public',table:'xp_log'},backgroundLoadAll)
+    .on('postgres_changes',{event:'*',schema:'public',table:'settings'},backgroundLoadAll)
     .subscribe(status=>{
       if(status==='SUBSCRIBED')setSyncDot('online');
       else setSyncDot('syncing');
@@ -1686,10 +1672,16 @@ document.getElementById('date-label').textContent=new Date().toLocaleDateString(
 const _initWard=localStorage.getItem('wq_active_ward')||'a';
 if(_initWard!=='a')selectMenuBtn(_initWard);
 renderAdmitForm();
+function backgroundLoadAll(){
+  const aid=document.activeElement?.id||'';
+  if(aid.startsWith('ti-')||aid.startsWith('rplan-')||aid.startsWith('pdiag-'))return;
+  if(document.querySelector('.move-picker[style*="display: flex"],.staff-pick-wrap[style*="display: flex"]'))return;
+  loadAll();
+}
 loadAll().then(()=>{
   setupRealtime();
   Object.keys(roundMetTs).forEach(pid=>scheduleRoundRemoval(pid));
-  setInterval(()=>loadAll(),15000);
+  setInterval(backgroundLoadAll,15000);
 });
 // Strip cache-bust param added by checkHtmlVersion
 if(new URLSearchParams(location.search).has('_')){history.replaceState(null,'',location.pathname);}
