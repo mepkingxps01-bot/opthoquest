@@ -624,7 +624,19 @@ function openRoundPicker(){
 function closeRoundPicker(e){document.getElementById('round-picker-overlay').style.display='none';}
 function confirmRoundPicker(){
   const pts=patients.filter(p=>p.ward==='consult');
-  priRoundList=pts.filter(p=>document.getElementById('rpcb-'+p.id)?.checked).map(p=>p.id);
+  const WARD_ORDER=['a','b','c','d','pri','consult','dc'];
+  priRoundList=pts
+    .filter(p=>document.getElementById('rpcb-'+p.id)?.checked)
+    .sort((a,b)=>{
+      const wa=wardMap[a.id]||a.ward||'consult';
+      const wb=wardMap[b.id]||b.ward||'consult';
+      const ia=WARD_ORDER.indexOf(wa)<0?99:WARD_ORDER.indexOf(wa);
+      const ib=WARD_ORDER.indexOf(wb)<0?99:WARD_ORDER.indexOf(wb);
+      if(ia!==ib)return ia-ib;
+      // same ward — sort by ward location text
+      return (getWardLoc(a.id)||'').localeCompare(getWardLoc(b.id)||'');
+    })
+    .map(p=>p.id);
   savePRIRound();syncRoundList();
   closeRoundPicker();
   renderConsult();
