@@ -1481,9 +1481,12 @@ async function loadAll(fromPoll=false){
   } else if(metSet.size>0){syncMetSet();}
 
   setSyncDot('online');
-  renderXP();renderSummary();renderVisitCounter();renderConsult();
+  renderXP();renderSummary();renderVisitCounter();
+  const ae=document.activeElement;
+  const inputBusy=fromPoll&&ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA');
+  if(!inputBusy)renderConsult();
   const newHash=getWardDataHash();
-  if(!fromPoll||newHash!==_wardDataHash){_wardDataHash=newHash;renderWard();}
+  if((!fromPoll||newHash!==_wardDataHash)&&!inputBusy){_wardDataHash=newHash;renderWard();}
   document.getElementById('loading-screen').classList.add('hidden');
 }
 
@@ -1725,8 +1728,6 @@ const _initWard=localStorage.getItem('wq_active_ward')||'a';
 if(_initWard!=='a')selectMenuBtn(_initWard);
 renderAdmitForm();
 function backgroundLoadAll(){
-  const ae=document.activeElement;
-  if(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'))return;
   if(document.querySelector('.move-picker[style*="display: flex"],.staff-pick-wrap[style*="display: flex"]'))return;
   loadAll(true);
 }
