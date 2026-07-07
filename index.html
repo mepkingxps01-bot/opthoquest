@@ -604,7 +604,7 @@ function toggleRoundMet(pid,e){
     priRoundList=priRoundList.filter(id=>id!==pid);
     priRoundList.push(pid);
   }
-  savePRIRound();saveRoundMet();saveRoundMetTs();syncRoundList();renderConsult();
+  savePRIRound();saveRoundMet();saveRoundMetTs();syncRoundList();renderConsult();renderVisitCounter();
 }
 function openRoundPicker(){
   const overlay=document.getElementById('round-picker-overlay');
@@ -801,9 +801,8 @@ function renderSummary(){}
 function renderVisitCounter(){
   const el=document.getElementById('visit-counter');
   if(!el)return;
-  const allPts=patients.filter(p=>p.ward==='consult');
-  const total=allPts.length;
-  const visited=allPts.filter(p=>metSet.has(p.id)).length;
+  const total=priRoundList.length;
+  const visited=priRoundList.filter(id=>roundMetSet.has(id)).length;
   el.textContent=visited+' / '+total+' seen';
   el.style.color=total>0&&visited===total?'var(--green)':'var(--text3)';
   el.style.borderColor=total>0&&visited===total?'rgba(80,200,120,0.4)':'var(--border2)';
