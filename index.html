@@ -1682,8 +1682,8 @@ const _initWard=localStorage.getItem('wq_active_ward')||'a';
 if(_initWard!=='a')selectMenuBtn(_initWard);
 renderAdmitForm();
 function backgroundLoadAll(){
-  const aid=document.activeElement?.id||'';
-  if(aid.startsWith('ti-')||aid.startsWith('rplan-')||aid.startsWith('pdiag-'))return;
+  const ae=document.activeElement;
+  if(ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA'))return;
   if(document.querySelector('.move-picker[style*="display: flex"],.staff-pick-wrap[style*="display: flex"]'))return;
   loadAll(true);
 }
