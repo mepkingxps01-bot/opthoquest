@@ -799,6 +799,7 @@ function buildPatientCard(p,idx){
           <div class="pt-avatar">${initials(p.name)}</div>
           <div class="pt-left-name">
             <div class="pt-name">${esc(p.name)}</div>
+            <input class="hn-input" placeholder="HN" value="${esc(getHn(p.id))}" oninput="onHnInput('${p.id}',this.value)" onclick="event.stopPropagation()" />
             ${staffSt?`<span class="staff-badge" style="background:${staffSt.bg};color:${staffSt.color};border:0.5px solid ${staffSt.border};">${staff}</span>`:''}
             <div class="pt-sub">${total?done+'/'+total+' tasks':'No tasks'}</div>
           </div>
@@ -878,6 +879,7 @@ function buildPRICard(p,i){
       <span class="tile-met-dot${isMet?'':' empty'}" onclick="toggleMet('${p.id}',event)">${isMet?'✓':''}</span>
       <div class="pri-tile-avatar" style="background:${avatarBg};color:${avatarColor};">${initials(p.name)}</div>
       <div class="pri-tile-name">${esc(p.name)}</div>
+      ${getHn(p.id)?`<div style="font-size:10px;color:var(--teal);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:90%;padding:0 4px;">${esc(getHn(p.id))}</div>`:''}
       ${diag?`<div style="font-size:10px;color:var(--text3);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:90%;padding:0 4px;">${esc(diag)}</div>`:''}
       ${allDone?`<span class="pri-tile-done">✓ Done</span>`
         :total?`<span class="pri-tile-count">${done}/${total}</span>`
@@ -896,6 +898,7 @@ function buildPRICard(p,i){
     </div>
     <div class="pri-tasks-panel">
       <div class="add-row" style="margin-bottom:8px;">
+        <input class="add-input" placeholder="HN" value="${esc(getHn(p.id))}" oninput="onHnInput('${p.id}',this.value)" onclick="event.stopPropagation()" style="flex:0 0 90px;" />
         <input id="pdiag-${p.id}" class="add-input" placeholder="Diagnosis..." value="${esc(diag)}" oninput="onDiagInput('${p.id}',this.value)" onclick="event.stopPropagation()" style="flex:1;" />
       </div>
       ${p.tasks.map(t=>`<div class="task-item">
