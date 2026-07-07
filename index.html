@@ -801,9 +801,9 @@ function renderSummary(){}
 function renderVisitCounter(){
   const el=document.getElementById('visit-counter');
   if(!el)return;
-  const wardPts=patients.filter(p=>p.ward&&p.ward!=='consult'&&p.ward!=='dc');
-  const total=wardPts.length;
-  const visited=wardPts.filter(p=>metSet.has(p.id)).length;
+  const allPts=patients.filter(p=>p.ward!=='dc');
+  const total=allPts.length;
+  const visited=allPts.filter(p=>metSet.has(p.id)).length;
   el.textContent=visited+' / '+total+' seen';
   el.style.color=total>0&&visited===total?'var(--green)':'var(--text3)';
   el.style.borderColor=total>0&&visited===total?'rgba(80,200,120,0.4)':'var(--border2)';
