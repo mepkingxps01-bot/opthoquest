@@ -605,7 +605,8 @@ function toggleRoundMet(pid,e){
 function openRoundPicker(){
   const overlay=document.getElementById('round-picker-overlay');
   const listEl=document.getElementById('round-picker-list');
-  const pts=patients.filter(p=>p.ward==='consult');
+  const pts=patients.filter(p=>p.ward==='consult')
+    .slice().sort((a,b)=>(getWardLoc(a.id)||'zzz').localeCompare(getWardLoc(b.id)||'zzz'));
   if(!pts.length){listEl.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">No consult patients yet.</div>';overlay.style.display='flex';return;}
   listEl.innerHTML=pts.map(p=>{
     const diag=getConsultDiag(p.id);const loc=getWardLoc(p.id);
