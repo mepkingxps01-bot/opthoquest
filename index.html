@@ -605,8 +605,15 @@ function toggleRoundMet(pid,e){
 function openRoundPicker(){
   const overlay=document.getElementById('round-picker-overlay');
   const listEl=document.getElementById('round-picker-list');
+  const _DEPT_ORDER=['Med','OB','Ped','Surg','Ortho','ENT','DC','Other'];
   const pts=patients.filter(p=>p.ward==='consult')
-    .slice().sort((a,b)=>(getWardLoc(a.id)||'zzz').localeCompare(getWardLoc(b.id)||'zzz'));
+    .slice().sort((a,b)=>{
+      const da=getConsultDept(a.id)||'zzz',db=getConsultDept(b.id)||'zzz';
+      const ia=_DEPT_ORDER.indexOf(da)<0?99:_DEPT_ORDER.indexOf(da);
+      const ib=_DEPT_ORDER.indexOf(db)<0?99:_DEPT_ORDER.indexOf(db);
+      if(ia!==ib)return ia-ib;
+      return (getWardLoc(a.id)||'zzz').localeCompare(getWardLoc(b.id)||'zzz');
+    });
   if(!pts.length){listEl.innerHTML='<div style="font-size:13px;color:var(--text3);padding:8px 0;">No consult patients yet.</div>';overlay.style.display='flex';return;}
   listEl.innerHTML=pts.map(p=>{
     const diag=getConsultDiag(p.id);const loc=getWardLoc(p.id);
@@ -626,17 +633,15 @@ function openRoundPicker(){
 function closeRoundPicker(e){document.getElementById('round-picker-overlay').style.display='none';}
 function confirmRoundPicker(){
   const pts=patients.filter(p=>p.ward==='consult');
-  const WARD_ORDER=['a','b','c','d','pri','consult','dc'];
+  const DEPT_ORDER=['Med','OB','Ped','Surg','Ortho','ENT','DC','Other'];
   priRoundList=pts
     .filter(p=>document.getElementById('rpcb-'+p.id)?.checked)
     .sort((a,b)=>{
-      const wa=wardMap[a.id]||a.ward||'consult';
-      const wb=wardMap[b.id]||b.ward||'consult';
-      const ia=WARD_ORDER.indexOf(wa)<0?99:WARD_ORDER.indexOf(wa);
-      const ib=WARD_ORDER.indexOf(wb)<0?99:WARD_ORDER.indexOf(wb);
+      const da=getConsultDept(a.id)||'zzz',db=getConsultDept(b.id)||'zzz';
+      const ia=DEPT_ORDER.indexOf(da)<0?99:DEPT_ORDER.indexOf(da);
+      const ib=DEPT_ORDER.indexOf(db)<0?99:DEPT_ORDER.indexOf(db);
       if(ia!==ib)return ia-ib;
-      // same ward — sort by ward location text
-      return (getWardLoc(a.id)||'').localeCompare(getWardLoc(b.id)||'');
+      return (getWardLoc(a.id)||'zzz').localeCompare(getWardLoc(b.id)||'zzz');
     })
     .map(p=>p.id);
   savePRIRound();syncRoundList();
