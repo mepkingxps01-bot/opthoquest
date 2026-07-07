@@ -801,7 +801,7 @@ function renderSummary(){}
 function renderVisitCounter(){
   const el=document.getElementById('visit-counter');
   if(!el)return;
-  const allPts=patients.filter(p=>p.ward!=='dc');
+  const allPts=patients.filter(p=>p.ward==='consult');
   const total=allPts.length;
   const visited=allPts.filter(p=>metSet.has(p.id)).length;
   el.textContent=visited+' / '+total+' seen';
