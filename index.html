@@ -341,7 +341,10 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
       <div class="app-eyebrow">Ophthalmology</div>
       <div class="app-title">Ward Quest <span class="sync-dot" id="sync-dot"></span></div>
       <div class="app-date" id="date-label"></div>
-      <button class="refresh-btn" id="refresh-btn" onclick="triggerRefresh()"><span class="ri">↺</span> Refresh</button>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+        <button class="refresh-btn" style="margin-top:0;" id="refresh-btn" onclick="triggerRefresh()"><span class="ri">↺</span> Refresh</button>
+        <div id="visit-counter" style="font-size:11px;font-weight:700;font-family:'Syne',sans-serif;color:var(--text3);background:var(--purple-dim);border:0.5px solid var(--border2);border-radius:99px;padding:4px 10px;letter-spacing:.03em;"></div>
+      </div>
     </div>
     <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
       <div class="menu-btn-group">
@@ -574,6 +577,7 @@ function toggleMet(pid,e){
   if(vLog&&vLog.style.display!=='none')renderConsult();
   else if(activeWard==='pri')renderPRIWard();
   else renderWard();
+  renderVisitCounter();
 }
 let roundMetSet=new Set(JSON.parse(localStorage.getItem('wq_round_met')||'[]'));
 function saveRoundMet(){localStorage.setItem('wq_round_met',JSON.stringify([...roundMetSet]));}
@@ -794,6 +798,16 @@ function showToast(msg){
 
 function renderXP(){}
 function renderSummary(){}
+function renderVisitCounter(){
+  const el=document.getElementById('visit-counter');
+  if(!el)return;
+  const wardPts=patients.filter(p=>p.ward&&p.ward!=='consult'&&p.ward!=='dc');
+  const total=wardPts.length;
+  const visited=wardPts.filter(p=>metSet.has(p.id)).length;
+  el.textContent=visited+' / '+total+' seen';
+  el.style.color=total>0&&visited===total?'var(--green)':'var(--text3)';
+  el.style.borderColor=total>0&&visited===total?'rgba(80,200,120,0.4)':'var(--border2)';
+}
 
 function buildPatientCard(p,idx){
   const done=p.tasks.filter(t=>t.done).length,total=p.tasks.length;
@@ -1254,7 +1268,7 @@ function selectMenuBtn(btn){
     const el=document.getElementById('menu-btn-'+b);
     if(el)el.className='menu-btn'+(b===btn?' active':'');
   });
-  renderXP();renderSummary();renderWard();renderHandover();
+  renderXP();renderSummary();renderVisitCounter();renderWard();renderHandover();
 }
 function setAdmitWard(btn){
   admitTargetWard=btn;
@@ -1289,7 +1303,7 @@ async function resetWardXP(){
   xpByWard={a:0,b:0,c:0,d:0,pri:0};saveXpByWard();
   xpTotal=0;
   await sb.from('xp_data').update({total:0}).eq('id',1);
-  renderXP();renderSummary();
+  renderXP();renderSummary();renderVisitCounter();
 }
 
 // ── Handover helpers ──────────────────────────────────────────
@@ -1468,7 +1482,7 @@ async function loadAll(fromPoll=false){
   } else if(metSet.size>0){syncMetSet();}
 
   setSyncDot('online');
-  renderXP();renderSummary();renderConsult();
+  renderXP();renderSummary();renderVisitCounter();renderConsult();
   const newHash=getWardDataHash();
   if(!fromPoll||newHash!==_wardDataHash){_wardDataHash=newHash;renderWard();}
   document.getElementById('loading-screen').classList.add('hidden');
@@ -1496,7 +1510,7 @@ async function awardXP(amount, reason, ward){
       document.getElementById('lvlup-overlay').classList.add('show');
     },800);
   }
-  renderXP();renderSummary();
+  renderXP();renderSummary();renderVisitCounter();
 }
 
 async function admitPatient(){
