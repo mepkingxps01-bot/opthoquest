@@ -565,10 +565,11 @@ let priRoundList=JSON.parse(localStorage.getItem('wq_pri_round')||'[]');
 function savePRIRound(){localStorage.setItem('wq_pri_round',JSON.stringify(priRoundList));}
 let metSet=new Set(JSON.parse(localStorage.getItem('wq_met_set')||'[]'));
 function saveMet(){localStorage.setItem('wq_met_set',JSON.stringify([...metSet]));}
+function syncMetSet(){sb.from('settings').upsert({key:'met_set_data',value:JSON.stringify([...metSet])}).then(({error})=>{if(error)console.warn('syncMetSet:',error.message);});}
 function toggleMet(pid,e){
   if(e)e.stopPropagation();
   if(metSet.has(pid))metSet.delete(pid);else metSet.add(pid);
-  saveMet();
+  saveMet();syncMetSet();
   const vLog=document.getElementById('view-log');
   if(vLog&&vLog.style.display!=='none')renderConsult();
   else if(activeWard==='pri')renderPRIWard();
@@ -1354,7 +1355,7 @@ async function saveHandoverMiscNote(text){
 
 let _wardDataHash='';
 function getWardDataHash(){
-  return JSON.stringify(patients.map(p=>({id:p.id,name:p.name,ward:p.ward,open:p.open,staff:staffMap[p.id]||null,tasks:p.tasks})))+JSON.stringify(dischargeMap);
+  return JSON.stringify(patients.map(p=>({id:p.id,name:p.name,ward:p.ward,open:p.open,staff:staffMap[p.id]||null,tasks:p.tasks})))+JSON.stringify(dischargeMap)+JSON.stringify([...metSet]);
 }
 async function loadAll(fromPoll=false){
   setSyncDot('syncing');
@@ -1452,6 +1453,14 @@ async function loadAll(fromPoll=false){
       if(rl.roundMetTs){Object.assign(roundMetTs,rl.roundMetTs);saveRoundMetTs();}
     }catch(e){}
   }
+  const metSetStr=allSettings['met_set_data'];
+  if(metSetStr){
+    try{
+      const ms=JSON.parse(metSetStr);
+      if(Array.isArray(ms)){metSet=new Set(ms);saveMet();}
+    }catch(e){}
+  } else if(metSet.size>0){syncMetSet();}
+
   setSyncDot('online');
   renderXP();renderSummary();renderConsult();
   const newHash=getWardDataHash();
