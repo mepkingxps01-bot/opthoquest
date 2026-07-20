@@ -11,7 +11,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "Content-Type",
 };
 
-async function parseORImage(base64: string, mediaType: string): Promise<{patients:{name:string,hn:string,operation:string,or_status:string}[], debug:string}> {
+async function parseORImage(base64: string, mediaType: string): Promise<{patients:{name:string,hn:string,operation:string,or_status:string,ward:string,is_pri:boolean}[], debug:string}> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -24,22 +24,27 @@ async function parseORImage(base64: string, mediaType: string): Promise<{patient
       max_tokens: 2048,
       system: `You extract patient rows from Thai hospital OR schedule images.
 Return ONLY a valid JSON array — no markdown fences, no explanation, no extra text.
-Each object must have exactly: "name" (full patient name as shown), "hn" (HN number as string), "operation" (Proposed Op column), "or_status" (see rules below).
+Each object must have exactly: "name" (full patient name as shown), "hn" (HN number as string), "operation" (Proposed Op column), "or_status" (see rules below), "ward" (the Ward column text exactly as shown), "is_pri" (boolean, see rules below).
 
 or_status rules:
 - "emer-or"  → patient is marked emergency/urgent/stat/ด่วน/ฉุกเฉิน, or scheduled outside normal hours as emergency
 - "post-op"  → operation column mentions post-op, follow-up, wound check, dressing, suture removal, or any clearly post-operative procedure
 - "wait-or"  → all other scheduled patients (default)
 
-Example: [{"name":"นายสมชาย ใจดี","hn":"4045398","operation":"Phaco + IOL RE","or_status":"wait-or"}]`,
+is_pri rules (based ONLY on the Ward column):
+- true  → the ward is the private / special ward — its text contains "Pri", "พิเศษ" (special), or the special ward name "สุจิณโณ"/"สุจิ"
+- false → any other ward, e.g. a regular eye ward like "Eye จักษุ2"
+
+Example: [{"name":"นายสมชาย ใจดี","hn":"4045398","operation":"Phaco + IOL RE","or_status":"wait-or","ward":"Pri พิเศษสุจิณโณ","is_pri":true}]`,
       messages: [
         {
           role: "user",
           content: [
             { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
-            { type: "text", text: `Read every patient row from this OR schedule table. Columns are: Order | Time | Room | Ward | HN | Patient name | Age | Diagnosis | Proposed Op | Surgeon ...
-Extract name (col 6), hn (col 5), operation (col 9), and or_status for every row.
+            { type: "text", text: `Read every patient row from this OR schedule table. Columns are: Order | Time | Room | HN | Patient name | Age | Ward | Diagnosis | Proposed Op | Surgeon ...
+For every row extract: name (patient name column), hn (HN number column), operation (Proposed Op column), or_status, ward (the Ward column text exactly as shown), and is_pri.
 Classify or_status as "emer-or" for emergency cases, "post-op" for post-operative procedures, or "wait-or" for all other scheduled patients.
+Set is_pri = true only when the Ward column is the private/special ward (text contains "Pri", "พิเศษ", or "สุจิณโณ"/"สุจิ"); otherwise false.
 Skip the header. Return a JSON array only.` }
           ]
         }
@@ -56,7 +61,12 @@ Skip the header. Return a JSON array only.` }
   try {
     const parsed = JSON.parse(m[0]);
     const valid = ['wait-or','emer-or','post-op'];
-    parsed.forEach((p: any) => { if (!valid.includes(p.or_status)) p.or_status = 'wait-or'; });
+    parsed.forEach((p: any) => {
+      if (!valid.includes(p.or_status)) p.or_status = 'wait-or';
+      p.ward = typeof p.ward === 'string' ? p.ward : '';
+      // Trust the model's flag, but fall back to a text check on the ward column.
+      p.is_pri = p.is_pri === true || /pri|พิเศษ|สุจิ/i.test(p.ward);
+    });
     return { patients: parsed, debug: debugInfo };
   } catch {
     return { patients: [], debug: debugInfo };
