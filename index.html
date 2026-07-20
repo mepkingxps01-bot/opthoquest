@@ -396,7 +396,7 @@ body::before{content:'';position:fixed;top:-200px;left:50%;transform:translateX(
         <div class="or-upload-icon">📷</div>
         <div class="or-upload-label">แตะเพื่อถ่ายรูป / เลือกรูป OR Schedule</div>
       </div>
-      <button class="or-parse-btn" id="or-parse-btn" onclick="parseAndAdmitOR()" disabled>🏥 อ่านรูปและ Admit → Ward <span id="or-ward-label">A</span></button>
+      <button class="or-parse-btn" id="or-parse-btn" onclick="parseAndAdmitOR()" disabled>🏥 อ่านรูป → Admit เฉพาะ Pri ward</button>
       <div class="or-status" id="or-status"></div>
     </div>
 
@@ -1582,6 +1582,13 @@ function onORImageSelected(input){
   reader.readAsDataURL(file);
 }
 
+// A patient belongs to the private/special (Pri) ward when the backend flags
+// it, or — as a fallback — when the raw Ward text looks like the Pri ward.
+function isPriPatient(p){
+  if(typeof p.is_pri==='boolean')return p.is_pri;
+  return /pri|พิเศษ|สุจิ/i.test(p.ward||'');
+}
+
 async function parseAndAdmitOR(){
   if(!orImageBase64){document.getElementById('or-status').textContent='กรุณาเลือกรูป OR Schedule ก่อน';return;}
   const btn=document.getElementById('or-parse-btn');
@@ -1606,28 +1613,36 @@ async function parseAndAdmitOR(){
       statusEl.textContent='ไม่พบรายชื่อผู้ป่วย — '+( data.debug||'(no debug)');
       return;
     }
-    // Auto-admit all found patients
-    statusEl.textContent=`พบ ${found.length} ราย กำลัง Admit...`;
+    // Pri ward only (for now): keep only Pri พิเศษ patients, skip the rest.
+    const priPatients=found.filter(isPriPatient);
+    const skipped=found.length-priPatients.length;
+    if(!priPatients.length){
+      statusEl.textContent=`พบ ${found.length} ราย แต่ไม่มีใครอยู่ Pri ward (ข้าม ${skipped} ราย)`;
+      return;
+    }
+    // Auto-admit only the Pri patients → PRI ward
+    const destWard='pri';
+    statusEl.textContent=`พบ Pri ${priPatients.length} ราย${skipped?` (ข้าม non-Pri ${skipped} ราย)`:''} กำลัง Admit...`;
     let done=0;
-    for(const p of found){
+    for(const p of priPatients){
       const name=`รอ admit - ${p.name} - ${p.hn} - ${p.operation}`;
       const pid=uid();
       const tasks=DEFAULT_ADMIT_TASKS.map(text=>({id:uid(),patient_id:pid,text,done:false}));
-      wardMap[pid]=admitTargetWard;saveWardMap();
+      wardMap[pid]=destWard;saveWardMap();
       const orSt=p.or_status||'wait-or';
       orStatusMap[pid]=orSt;saveORStatusMap();
-      await sb.from('patients').insert({id:pid,name,open:true,ward:admitTargetWard,section:'ward',or_status:orSt});
+      await sb.from('patients').insert({id:pid,name,open:true,ward:destWard,section:'ward',or_status:orSt});
       if(tasks.length) await sb.from('tasks').insert(tasks);
-      await awardXP(1,'Admitted: '+name,admitTargetWard);
+      await awardXP(1,'Admitted: '+name,destWard);
       done++;
-      statusEl.textContent=`กำลัง Admit... ${done}/${found.length}`;
+      statusEl.textContent=`กำลัง Admit... ${done}/${priPatients.length}`;
     }
-    statusEl.textContent=`✅ Admit แล้ว ${done} ราย → Ward ${admitTargetWard.toUpperCase()}`;
+    statusEl.textContent=`✅ Admit Pri แล้ว ${done} ราย → Ward PRI${skipped?` · ข้าม non-Pri ${skipped} ราย`:''}`;
     orImageBase64='';
     document.getElementById('or-upload-zone').className='or-upload-zone';
     document.getElementById('or-upload-zone').innerHTML='<div class="or-upload-icon">📷</div><div class="or-upload-label">แตะเพื่อถ่ายรูป / เลือกรูป OR Schedule</div>';
     await loadAll();
-    selectMenuBtn(admitTargetWard);
+    selectMenuBtn(destWard);
     switchTab('ward');
   }catch(e){
     statusEl.textContent='เกิดข้อผิดพลาด: '+e.message;
