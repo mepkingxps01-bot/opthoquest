@@ -619,7 +619,7 @@ function openRoundPicker(){
   const overlay=document.getElementById('round-picker-overlay');
   const listEl=document.getElementById('round-picker-list');
   const _DEPT_ORDER=['Med','OB','Ped','Surg','Ortho','ENT','DC','Other'];
-  const pts=patients.filter(p=>p.ward==='consult')
+  const pts=patients.filter(p=>p.ward==='consult'&&getConsultDept(p.id)!=='DC')
     .slice().sort((a,b)=>{
       const da=getConsultDept(a.id)||'zzz',db=getConsultDept(b.id)||'zzz';
       const ia=_DEPT_ORDER.indexOf(da)<0?99:_DEPT_ORDER.indexOf(da);
@@ -1187,6 +1187,9 @@ function renderConsult(){
   // Render round list — skip re-render if user is typing in a plan textarea
   const roundEl=document.getElementById('consult-round-list');
   if(roundEl&&!(document.activeElement?.id?.startsWith('rplan-'))){
+    // DC (discharge) patients don't round — drop them from the round list
+    const cleaned=priRoundList.filter(id=>{const p=patients.find(x=>x.id===id);return p&&getConsultDept(id)!=='DC';});
+    if(cleaned.length!==priRoundList.length){priRoundList=cleaned;savePRIRound();syncRoundList();}
     const roundPts=priRoundList.map(id=>patients.find(p=>p.id===id)).filter(Boolean);
     roundEl.innerHTML=`<div class="round-list-section">
       <div class="round-list-hdr"><span class="round-list-title">📋 Round List</span>${roundPts.length?`<span class="ward-count">${roundPts.length} pt${roundPts.length!==1?'s':''}</span>`:''}</div>
